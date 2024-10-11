@@ -1,5 +1,5 @@
 # AES_imaging_tools
-Tools for processing imaging data produced using adaptive excitation. This includes three installable matlab apps. The ui was written in app designer and tested on Matlab release 2022a.
+Tools for processing imaging data produced using adaptive excitation. This includes three installable matlab apps. The ui was written in app designer and tested on Matlab release 2022a. A description of the binary file data output by the motion correction app and a matlab class for reading files are included in "aes_file_format.txt" and "AESFile.m" respectively in the /installation folder.
 * __Motion Correction App:__ The primary application use for motion correcting videos with AES patterns and extracting trace data.
 * __Mask App:__ Used for producing binary masks when generating AES patterns. This is useful for producing the masks used for segmentation in the Motion Correction App, but not necessary.
 * __Trace Viewer App:__ Used for getting a quick overview of output from the Motion Correction App. This is not typically the final step of data analysis; however, it can be useful for understanding the data put out by the Motion Correction App before deciding whether a more thorough analysis will be useful.
