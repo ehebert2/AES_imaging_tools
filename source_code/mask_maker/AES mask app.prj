@@ -1,0 +1,70 @@
+<deployment-project plugin="plugin.apptool" plugin-version="1.0">
+  <configuration build-checksum="335126006" file="C:\Users\ScanImage\Desktop\AES_image_tools_v5\mask_maker\AES mask app.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v5\mask_maker" name="AES mask app" target="target.mlapps" target-name="Package App">
+    <param.appname>AES mask app</param.appname>
+    <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
+    <param.email />
+    <param.company />
+    <param.icon>${PROJECT_ROOT}\AES mask app_resources\icon_24.png</param.icon>
+    <param.icons>
+      <file>${PROJECT_ROOT}\AES mask app_resources\icon_48.png</file>
+      <file>${PROJECT_ROOT}\AES mask app_resources\icon_24.png</file>
+      <file>${PROJECT_ROOT}\AES mask app_resources\icon_16.png</file>
+    </param.icons>
+    <param.summary>Generate masks for use with AES.</param.summary>
+    <param.description />
+    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp95545f65_36ce_4ad9_b9c1_f03e1f43d1ab.png</param.screenshot>
+    <param.version>2.0</param.version>
+    <param.products.name />
+    <param.products.id />
+    <param.products.version />
+    <param.platforms />
+    <param.output>${PROJECT_ROOT}</param.output>
+    <param.guid>d2c21e69-4ba0-494b-a1e2-fc176b8d4e62</param.guid>
+    <unset>
+      <param.email />
+      <param.company />
+      <param.description />
+      <param.products.name />
+      <param.products.id />
+      <param.products.version />
+      <param.platforms />
+      <param.output />
+    </unset>
+    <fileset.main>
+      <file>${PROJECT_ROOT}\aes_image_app.mlapp</file>
+    </fileset.main>
+    <fileset.depfun>
+      <file>${PROJECT_ROOT}\BC_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\channel_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\MotionTracker.m</file>
+      <file>${PROJECT_ROOT}\StackTracker.m</file>
+      <file>${PROJECT_ROOT}\thumbnail_mask_app.png</file>
+      <file>${PROJECT_ROOT}\validateParams.m</file>
+    </fileset.depfun>
+    <fileset.resources />
+    <fileset.package />
+    <build-deliverables>
+      <file location="C:\Users\ScanImage\Desktop\AES_image_tools_v5" name="mask_maker" optional="false">C:\Users\ScanImage\Desktop\AES_image_tools_v5\mask_maker</file>
+    </build-deliverables>
+    <workflow />
+    <matlab>
+      <root>C:\Program Files\MATLAB\R2022b</root>
+      <toolboxes />
+    </matlab>
+    <platform>
+      <unix>false</unix>
+      <mac>false</mac>
+      <windows>true</windows>
+      <win2k>false</win2k>
+      <winxp>false</winxp>
+      <vista>false</vista>
+      <linux>false</linux>
+      <solaris>false</solaris>
+      <osver>10.0</osver>
+      <os32>false</os32>
+      <os64>true</os64>
+      <arch>win64</arch>
+      <matlab>true</matlab>
+    </platform>
+  </configuration>
+</deployment-project>
