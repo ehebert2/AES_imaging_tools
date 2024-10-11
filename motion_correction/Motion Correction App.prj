@@ -1,0 +1,85 @@
+<deployment-project plugin="plugin.apptool" plugin-version="1.0">
+  <configuration build-checksum="1296866870" file="C:\Users\ScanImage\Desktop\AES_image_tools_v5\motion_correction\Motion Correction App.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v5\motion_correction" name="Motion Correction App" target="target.mlapps" target-name="Package App">
+    <param.appname>Motion Correction App</param.appname>
+    <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
+    <param.email />
+    <param.company />
+    <param.icon>${PROJECT_ROOT}\Motion Correction App_resources\icon_24.png</param.icon>
+    <param.icons>
+      <file>${PROJECT_ROOT}\Motion Correction App_resources\icon_48.png</file>
+      <file>${PROJECT_ROOT}\Motion Correction App_resources\icon_24.png</file>
+      <file>${PROJECT_ROOT}\Motion Correction App_resources\icon_16.png</file>
+    </param.icons>
+    <param.summary>Process videos created using AES.</param.summary>
+    <param.description>Handles motion correction and trace extraction for videos made using AES.</param.description>
+    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp9cc7b316_7ebb_482b_89e3_5f2333b5c6ba.png</param.screenshot>
+    <param.version>3.0</param.version>
+    <param.products.name />
+    <param.products.id />
+    <param.products.version />
+    <param.platforms />
+    <param.output>${PROJECT_ROOT}</param.output>
+    <param.guid>9b453cf1-299b-4a79-b4e6-ed8a00f65d8d</param.guid>
+    <unset>
+      <param.email />
+      <param.company />
+      <param.products.name />
+      <param.products.id />
+      <param.products.version />
+      <param.platforms />
+      <param.output />
+    </unset>
+    <fileset.main>
+      <file>${PROJECT_ROOT}\AES_motion_correction_app.mlapp</file>
+    </fileset.main>
+    <fileset.depfun>
+      <file>${PROJECT_ROOT}\+helper_apps\+images\framebackward.png</file>
+      <file>${PROJECT_ROOT}\+helper_apps\+images\frameforward.png</file>
+      <file>${PROJECT_ROOT}\+helper_apps\+images\play.png</file>
+      <file>${PROJECT_ROOT}\+helper_apps\+images\thumbnail_compression_app.png</file>
+      <file>${PROJECT_ROOT}\+helper_apps\auto_roi_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\BC_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\bidirectional_shift_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\channel_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\mtn_output_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\preview_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\preview_params_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\roi_adjust_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\stack_select_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\AESFile.m</file>
+      <file>${PROJECT_ROOT}\MaskHandler.m</file>
+      <file>${PROJECT_ROOT}\MaskType.m</file>
+      <file>${PROJECT_ROOT}\MotionTracker.m</file>
+      <file>${PROJECT_ROOT}\OutputFileHandler.m</file>
+      <file>${PROJECT_ROOT}\StackTracker.m</file>
+      <file>${PROJECT_ROOT}\validateParams.m</file>
+    </fileset.depfun>
+    <fileset.resources>
+      <file>${PROJECT_ROOT}\+helper_apps\+images\pause.png</file>
+    </fileset.resources>
+    <fileset.package />
+    <build-deliverables>
+      <file location="C:\Users\ScanImage\Desktop\AES_image_tools_v5" name="motion_correction" optional="false">C:\Users\ScanImage\Desktop\AES_image_tools_v5\motion_correction</file>
+    </build-deliverables>
+    <workflow />
+    <matlab>
+      <root>C:\Program Files\MATLAB\R2022b</root>
+      <toolboxes />
+    </matlab>
+    <platform>
+      <unix>false</unix>
+      <mac>false</mac>
+      <windows>true</windows>
+      <win2k>false</win2k>
+      <winxp>false</winxp>
+      <vista>false</vista>
+      <linux>false</linux>
+      <solaris>false</solaris>
+      <osver>10.0</osver>
+      <os32>false</os32>
+      <os64>true</os64>
+      <arch>win64</arch>
+      <matlab>true</matlab>
+    </platform>
+  </configuration>
+</deployment-project>
