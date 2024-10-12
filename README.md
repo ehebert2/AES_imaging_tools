@@ -11,4 +11,4 @@ This is the primary tool present in this repository. When given masks depicting 
 A simple tool for generating binary masks over an image and saving them as uncompressed '.tif' files. It is helpful for producing the necessary inputs for the motion correction tool, but the masks can be generated in other ways.
 
 ## Trace App
-A tool for getting a quick look at the output from the motion correction app. It is not intended for full processing of the data.
+A tool for getting a quick look at the output from the motion correction app. It is not intended for full processing of the data. A more complete description of this tool is contained in the "Trace Viewer App Manual" word document.
