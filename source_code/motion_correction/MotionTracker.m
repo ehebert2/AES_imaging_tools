@@ -58,8 +58,13 @@ classdef MotionTracker < handle
         htot
     end
 
+    properties (SetAccess = public)
+        frameLimit
+    end
+
     methods
         function obj = MotionTracker(params)
+            obj.frameLimit = [];
             obj.params = validateParams(params);
             if (obj.params.splitChannels)
                 obj.aesMask = obj.params.roiAes{obj.params.mainChannel};
@@ -453,9 +458,16 @@ classdef MotionTracker < handle
         function countFrames(obj)
             obj.tin.setDirectory(1);
             obj.frames = 1;
-            while (~obj.tin.lastDirectory())
-                obj.frames = obj.frames + 1;
-                obj.tin.nextDirectory();
+            if (isempty(obj.frameLimit))
+                while (~obj.tin.lastDirectory())
+                    obj.frames = obj.frames + 1;
+                    obj.tin.nextDirectory();
+                end
+            else
+                while (~obj.tin.lastDirectory && (obj.frames < obj.frameLimit))
+                    obj.frames = obj.frames+1;
+                    obj.tin.nextDirectory();
+                end
             end
             obj.frames = obj.frames * (obj.bidirectional + 1) / obj.channels;
             obj.tin.setDirectory(1);

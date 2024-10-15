@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="574157090" file="C:\Users\ScanImage\Desktop\AES_image_tools_v5\trace_viewer\Trace Viewer.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v5\trace_viewer" name="Trace Viewer" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="2047788251" file="C:\Users\ScanImage\Desktop\AES_image_tools_v5\trace_viewer\Trace Viewer.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v5\trace_viewer" name="Trace Viewer" target="target.mlapps" target-name="Package App">
     <param.appname>Trace Viewer</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,8 +12,8 @@
     </param.icons>
     <param.summary>App for quickly viewing output from motion correction app</param.summary>
     <param.description />
-    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp0f6272d7_f51a_4adc_a07f_3555f8c93ec7.png</param.screenshot>
-    <param.version>1.0</param.version>
+    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tpd26b5b95_e246_40df_8b87_1068229c83ce.png</param.screenshot>
+    <param.version>1.2</param.version>
     <param.products.name />
     <param.products.id />
     <param.products.version />
@@ -23,7 +23,6 @@
     <unset>
       <param.email />
       <param.description />
-      <param.version />
       <param.products.name />
       <param.products.id />
       <param.products.version />

@@ -7,16 +7,16 @@ This is just to help me remember what fields the params struct contains.
 	multiVid: 	whether or not multiple videos are to be processed
 	splitFolders: 	whether or not to split the output into folders for each video
 	mtn: 		whether or not to do motion correction
-	mtnVid: 	whether to save the motion corrected stack
 	mtnIntlWndw: 	number of frames used to form template for motion correction
 	mtnWndw: 	temporal gaussian averaged window for motion correction
 	compress: 	whether or not to set pixels outside imaging roi's to 0 and compress output video
 	saveMasks: 	whether or not to save masks used for data analysis
+	saveVid:	whether or not to save the output video
 	zeroVid: 	whether or not to subtract video by background (value outside of laser exposure regions)
 	bgTrace: 	save average and stdev of pixels outside laser exposure regions for each frame
-	bgProfile: 	bgTrace, but saves the average background pixel value of every column
 	aesTrace: 	save pixel values inside each AES ROI
 	smplTrace: 	save pixel values inside each sample ROI (after motion correction if using)
+	zeroTrace:	subtrace background mean from sample and aes traces before saving.
 	mtnTrace: 	save displacement in pixel units of rigid motion correction for each frame
 	mtnOverlap: 	save boolean of each sample ROI for each frame determining if the sample ROI lies within the AES ROI region after motion correction.
 	sptlWndw: 	spatial blur (1/e^2 radius) applied to images for motion registration (only used during motion correction, not applied to any saved video)

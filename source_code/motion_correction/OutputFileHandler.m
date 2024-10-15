@@ -16,6 +16,8 @@ classdef OutputFileHandler < handle
         numSmpl
         overlapMask
         profileNorm
+        profileNormX
+        profileNormY
 
         tout
         firstFrame
@@ -36,7 +38,7 @@ classdef OutputFileHandler < handle
         yDisp
 
         getBG
-        writeVid
+        sbtrBgFirst
     end
 
     methods
@@ -68,8 +70,8 @@ classdef OutputFileHandler < handle
 
             % store useful booleans so I don't have to recalc every frame
             multiChannel = (obj.channels > 1);
-            obj.getBG = obj.params.bgTrace || obj.params.zeroVid;
-            obj.writeVid = obj.params.mtnVid || obj.params.compress;
+            obj.getBG = obj.params.bgTrace || obj.params.zeroVid || obj.params.zeroTrace;
+            obj.sbtrBgFirst = obj.params.zeroTrace && (obj.params.zeroVid || ~obj.params.saveVid);
             obj.images = int16(zeros(obj.params.dim(1),obj.params.dim(2),obj.channels));
 
             hasTraces = obj.params.aesTrace + obj.params.smplTrace + obj.params.bgTrace + obj.params.mtnTrace;
@@ -107,36 +109,15 @@ classdef OutputFileHandler < handle
             end
             
             % open output tiff stream
-            if (obj.params.compress || obj.params.mtnVid)
-                if (obj.params.mtnVid)
+            if (obj.params.saveVid)
+                if (obj.params.mtn)
                     obj.tout = Tiff(fullfile(outPath,strcat(basename,'_motion_corrected.tif')),'w8');
-                else
+                elseif (obj.params.compress)
                     obj.tout = Tiff(fullfile(outPath,strcat(basename,'_compressed.tif')),'w8');
+                else
+                    obj.tout = Tiff(fullfile(outPath,strcat(basename,'_processed.tif')),'w8');
                 end
                 obj.firstFrame = true;
-            end
-
-            % open bg profile stream
-            if (obj.params.bgProfile)
-                obj.profileNorm = zeros(obj.params.dim(1),obj.channels);
-                for ch=1:obj.channels
-                    obj.profileNorm(:,ch) = sum((1-obj.fullMask(:,:,ch)),2);
-                end
-
-                if (prod(obj.profileNorm,'all') == 0)
-                        disp('Warning: lack background samples across some rows of image. Turning off profile zeroing');
-                        obj.params.bgProfile = false;
-                        obj.params.bgTrace = true;
-                else
-                    obj.fBgPrfl = cell(1,obj.channels);
-                    if (multiChannel)
-                        for ii = 1:obj.channels
-                            obj.fBgPrfl{ii} = AESFile.getWriter(fullfile(binPath,strcat(basename,'_bg_profile_ch',num2str(ii),'.bin')),obj.params.dim(1),numFrames,16,true);
-                        end
-                    else
-                        obj.fBgPrfl{1} = AESFile.getWriter(fullfile(binPath,strcat(basename,'_bg_profile.bin')),obj.params.dim(1),numFrames,16,true);
-                    end
-                end
             end
 
             % open aes file streams
@@ -153,14 +134,26 @@ classdef OutputFileHandler < handle
                 if (multiChannel)
                     for ch=1:obj.channels
                         obj.fAes{ch} = cell(obj.numAes(ch),1);
-                        for ii=1:obj.numAes(ch)
-                            obj.fAes{ch}{ii} = AESFile.getWriter(fullfile(aesPath,strcat(basename,'_',obj.aesNames{ch}{ii},'_ch',num2str(ch),'.bin')),sum(obj.aesMasks{ch}(:,:,ii),'all'),numFrames,16,true);
+                        if (obj.params.zeroTrace)
+                            for ii=1:obj.numAes(ch)
+                                obj.fAes{ch}{ii} = AESFile.getWriter(fullfile(aesPath,strcat(basename,'_',obj.aesNames{ch}{ii},'_zeroed_ch',num2str(ch),'.bin')),sum(obj.aesMasks{ch}(:,:,ii),'all'),numFrames,16,true);
+                            end
+                        else
+                            for ii=1:obj.numAes(ch)
+                                obj.fAes{ch}{ii} = AESFile.getWriter(fullfile(aesPath,strcat(basename,'_',obj.aesNames{ch}{ii},'_ch',num2str(ch),'.bin')),sum(obj.aesMasks{ch}(:,:,ii),'all'),numFrames,16,true);
+                            end
                         end
                     end
                 else
                     obj.fAes{1} = cell(obj.numAes(1),1);
-                    for ii=1:obj.numAes(1)
-                        obj.fAes{1}{ii} = AESFile.getWriter(fullfile(aesPath,strcat(basename,'_',obj.aesNames{1}{ii},'.bin')),sum(obj.aesMasks{1}(:,:,ii),'all'),numFrames,16,true);
+                    if (obj.params.zeroTrace)
+                        for ii=1:obj.numAes(1)
+                            obj.fAes{1}{ii} = AESFile.getWriter(fullfile(aesPath,strcat(basename,'_',obj.aesNames{1}{ii},'_zeroed.bin')),sum(obj.aesMasks{1}(:,:,ii),'all'),numFrames,16,true);
+                        end
+                    else
+                        for ii=1:obj.numAes(1)
+                            obj.fAes{1}{ii} = AESFile.getWriter(fullfile(aesPath,strcat(basename,'_',obj.aesNames{1}{ii},'.bin')),sum(obj.aesMasks{1}(:,:,ii),'all'),numFrames,16,true);
+                        end
                     end
                 end
             end
@@ -179,14 +172,26 @@ classdef OutputFileHandler < handle
                 if (multiChannel)
                     for ch=1:obj.channels
                         obj.fSmpl{ch} = cell(obj.numSmpl(ch),1);
-                        for ii=1:obj.numSmpl(ch)
-                            obj.fSmpl{ch}{ii} = AESFile.getWriter(fullfile(smplPath,strcat(basename,'_',obj.smplNames{ch}{ii},'_ch',num2str(ch),'.bin')),sum(obj.smplMasks{ch}(:,:,ii),'all'),numFrames,16,true);
+                        if (obj.params.zeroTrace)
+                            for ii=1:obj.numSmpl(ch)
+                                obj.fSmpl{ch}{ii} = AESFile.getWriter(fullfile(smplPath,strcat(basename,'_',obj.smplNames{ch}{ii},'_zeroed_ch',num2str(ch),'.bin')),sum(obj.smplMasks{ch}(:,:,ii),'all'),numFrames,16,true);
+                            end
+                        else
+                            for ii=1:obj.numSmpl(ch)
+                                obj.fSmpl{ch}{ii} = AESFile.getWriter(fullfile(smplPath,strcat(basename,'_',obj.smplNames{ch}{ii},'_ch',num2str(ch),'.bin')),sum(obj.smplMasks{ch}(:,:,ii),'all'),numFrames,16,true);
+                            end
                         end
                     end
                 else
                     obj.fSmpl{1} = cell(obj.numSmpl(1),1);
-                    for ii=1:obj.numSmpl(1)
-                        obj.fSmpl{1}{ii} = AESFile.getWriter(fullfile(smplPath,strcat(basename,'_',obj.smplNames{1}{ii},'.bin')),sum(obj.smplMasks{1}(:,:,ii),'all'),numFrames,16,true);
+                    if (obj.params.zeroTrace)
+                        for ii=1:obj.numSmpl(1)
+                            obj.fSmpl{1}{ii} = AESFile.getWriter(fullfile(smplPath,strcat(basename,'_',obj.smplNames{1}{ii},'_zeroed.bin')),sum(obj.smplMasks{1}(:,:,ii),'all'),numFrames,16,true);
+                        end
+                    else
+                        for ii=1:obj.numSmpl(1)
+                            obj.fSmpl{1}{ii} = AESFile.getWriter(fullfile(smplPath,strcat(basename,'_',obj.smplNames{1}{ii},'.bin')),sum(obj.smplMasks{1}(:,:,ii),'all'),numFrames,16,true);
+                        end
                     end
                 end
             end
@@ -288,12 +293,6 @@ classdef OutputFileHandler < handle
                 end
             end
 
-            if (obj.params.bgProfile)
-                for ii = 1:obj.channels
-                    fclose(obj.fBgPrfl{ii});
-                end
-            end
-
             if (obj.params.mtn)
                 if (obj.params.mtnTrace)
                     fclose(obj.fMtn);
@@ -312,7 +311,7 @@ classdef OutputFileHandler < handle
                 end
             end
 
-            if (obj.params.compress || obj.params.mtnVid)
+            if (obj.params.saveVid)
                 close(obj.tout);
             end
 
@@ -356,7 +355,7 @@ classdef OutputFileHandler < handle
             if (obj.params.splitChannels)
                 for ch=1:obj.channels
                     if (obj.params.mtnOverlap(ch))
-                            fwrite(obj.fOver{ch},obj.overlapMask{ch}((obj.params.dim(1)-obj.yDisp),(obj.params.dim(2)-obj.xDisp),:),'ubit1','b');
+                        fwrite(obj.fOver{ch},obj.overlapMask{ch}((obj.params.dim(1)-obj.yDisp),(obj.params.dim(2)-obj.xDisp),:),'ubit1','b');
                     end
                 end
             else
@@ -375,23 +374,26 @@ classdef OutputFileHandler < handle
                         fwrite(obj.fBgm{ch},[bgMean,std(bg)],'double','b');
                     end
                     bgMean = int16(bgMean);
-                end
-    
-                if (obj.params.bgProfile)
-                    profile = int16(sum((obj.image .* (1-obj.compMask(:,:,ch))),2) ./ obj.profileNorm(:,ch));
-                    obj.image = obj.image - profile;
-                    fwrite(obj.fBgPrfl{ch},profile,'int16','b');
+                    if (obj.sbtrBgFirst)
+                        obj.image = obj.image - bgMean;
+                    end
                 end
     
                 if (obj.params.aesTrace)
-                    for ii = 1:obj.numAes(ch)
-                        fwrite(obj.fAes{ch}{ii},obj.image(obj.aesMasks{ch}(:,:,ii)),'int16','b');
+                    if (obj.params.zeroTrace && ~obj.sbtrBgFirst)
+                        for ii = 1:obj.numAes(ch)
+                            fwrite(obj.fAes{ch}{ii},(obj.image(obj.aesMasks{ch}(:,:,ii))-bgMean),'int16','b');
+                        end
+                    else
+                        for ii = 1:obj.numAes(ch)
+                            fwrite(obj.fAes{ch}{ii},obj.image(obj.aesMasks{ch}(:,:,ii)),'int16','b');
+                        end
                     end
                 end
     
                 if (obj.params.compress)
                     obj.image = obj.image .* obj.compMask(:,:,ch);
-                    if (obj.params.zeroVid && ~obj.params.bgProfile)
+                    if (obj.params.zeroVid && ~obj.sbtrBgFirst)
                         obj.image = obj.image + (1 - obj.compMask(:,:,ch)) * bgMean;
                     end
                 end
@@ -401,18 +403,20 @@ classdef OutputFileHandler < handle
                 end
     
                 if (obj.params.smplTrace) 
-                    for ii = 1:obj.numSmpl(ch)
-                        fwrite(obj.fSmpl{ch}{ii},obj.image(obj.smplMasks{ch}(:,:,ii)),'int16','b');
+                    if (obj.params.zeroTrace && ~obj.sbtrBgFirst)
+                        for ii = 1:obj.numSmpl(ch)
+                            fwrite(obj.fSmpl{ch}{ii},(obj.image(obj.smplMasks{ch}(:,:,ii))-bgMean),'int16','b');
+                        end
+                    else
+                        for ii = 1:obj.numSmpl(ch)
+                            fwrite(obj.fSmpl{ch}{ii},obj.image(obj.smplMasks{ch}(:,:,ii)),'int16','b');
+                        end
                     end
                 end
     
-                if (obj.writeVid)
-                    if (obj.params.zeroVid)
-                        if (~obj.params.bgProfile)
-                            obj.image = obj.image - bgMean;
-                        end
-                    elseif (obj.params.bgProfile)
-                        obj.image = obj.image + circshift(profile,1,obj.yDisp);
+                if (obj.params.saveVid)
+                    if (obj.params.zeroVid && ~obj.sbtrBgFirst)
+                        obj.image = obj.image - bgMean;
                     end
         
                     if (obj.firstFrame)

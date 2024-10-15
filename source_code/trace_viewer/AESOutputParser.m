@@ -15,6 +15,7 @@ classdef AESOutputParser < handle
         mtnTraces
         aesNumPx
         smplNumPx
+        traceZeroed
 
         % roi names
         aesNames
@@ -139,9 +140,16 @@ classdef AESOutputParser < handle
                 if (obj.channels == 0)
                     if (exist(strcat(tempFile,filesep,'aes_roi_traces'),'dir'))
                         obj.channels = obj.checkBinChannels(strcat(tempFile,filesep,'aes_roi_traces',filesep,obj.basenames{1},'_',obj.aesNames{1}));
+                        if (obj.channels==0)
+                            obj.channels = obj.checkBinChannels(strcat(tempFile,filesep,'aes_roi_traces',filesep,obj.basenames{1},'_',obj.aesNames{1},'_zeroed'));
+                        end
                     elseif (exist(strcat(tempFile,filesep,'smpl_roi_traces'),'dir'))
                         obj.channels = obj.checkBinChannels(strcat(tempFile,filesep,'smpl_roi_traces',filesep,obj.basenames{1},'_',obj.smplNames{1}));
-                    else
+                        if (obj.channels==0)
+                            obj.channels = obj.checkBinChannels(strcat(tempFile,filesep,'smpl_roi_traces',filesep,obj.basenames{1},'_',obj.smplNames{1},'_zeroed'));
+                        end
+                    end
+                    if (obj.channels==0)
                         disp('no meaningful traces found.');
                         return;
                     end
@@ -186,6 +194,7 @@ classdef AESOutputParser < handle
             hasBgTraces = false;
             hasMtnTraces = false;
             hasOverlapTraces = false;
+            obj.traceZeroed = false;
             if (exist(strcat(binPath,filesep,'aes_roi_traces'),'dir'))
                 obj.aesTraces = cell(numFiles,1);
                 hasAesTraces = true;
@@ -240,6 +249,36 @@ classdef AESOutputParser < handle
             numTotTraces = numTotTraces * numFiles;
             numFinTraces = 0;
 
+            if (hasSmplTraces)
+                if (obj.channels==1)
+                    if (exist(strcat(binPath,filesep,'smpl_roi_traces',filesep,obj.basenames{1},'_',obj.smplNames{ch}{1},'_zeroed.bin'),'file'))
+                        obj.traceZeroed = true;
+                    end
+                else
+                    ch=1;
+                    while(isempty(obj.smplNames{ch}))
+                        ch=ch+1;
+                    end
+                    if (exist(strcat(binPath,filesep,'smpl_roi_traces',filesep,obj.basenames{1},'_',obj.smplNames{ch}{1},'_zeroed_ch1.bin'),'file'))
+                        obj.traceZeroed = true;
+                    end
+                end
+            elseif (hasAesTraces)
+                if (obj.channels==1)
+                    if (exist(strcat(binPath,filesep,'aes_roi_traces',filesep,obj.basenames{1},'_',obj.aesNames{ch}{1},'_zeroed.bin'),'file'))
+                        obj.traceZeroed = true;
+                    end
+                else
+                    ch=1;
+                    while(isempty(obj.smplNames{ch}))
+                        ch=ch+1;
+                    end
+                    if (exist(strcat(binPath,filesep,'aes_roi_traces',filesep,obj.basenames{1},'_',obj.aesNames{ch}{1},'_zeroed_ch1.bin'),'file'))
+                        obj.traceZeroed = true;
+                    end
+                end
+            end
+
             % read in data
             for fl=1:numFiles
                 if (useDlg)
@@ -247,52 +286,6 @@ classdef AESOutputParser < handle
                 end
 
                 binPath = strcat(path,filesep,obj.basenames{fl},filesep,'bin_files');
-                if (hasAesTraces)
-                    obj.aesTraces{fl} = cell(obj.channels,1);
-                    for ch = 1:obj.channels
-                        numTraces = length(obj.aesNames{ch});
-                        obj.aesTraces{fl}{ch} = cell(numTraces,1);
-                        for ii=1:numTraces
-                            if (obj.channels == 1)
-                                temp = AESFile.readFullFile(strcat(binPath,filesep,'aes_roi_traces',filesep,obj.basenames{fl},'_',obj.aesNames{ch}{ii},'.bin'));
-                            else
-                                temp = AESFile.readFullFile(strcat(binPath,filesep,'aes_roi_traces',filesep,obj.basenames{fl},'_',obj.aesNames{ch}{ii},'_ch',num2str(ch),'.bin'));
-                            end
-                            obj.aesTraces{fl}{ch}{ii} = [mean(temp,2),std(temp,0,2)];
-                            numFinTraces = numFinTraces+1;
-                            if (useDlg)
-                                interruptDialog.Value = numFinTraces/numTotTraces;
-                                if (interruptDialog.CancelRequested)
-                                    return;
-                                end
-                            end
-                        end
-                    end
-                end
-    
-                if (hasSmplTraces)
-                    obj.smplTraces{fl} = cell(obj.channels,1);
-                    for ch = 1:obj.channels
-                        numTraces = length(obj.smplNames{ch});
-                        obj.smplTraces{fl}{ch} = cell(numTraces,1);
-                        for ii=1:numTraces
-                            if (obj.channels == 1)
-                                temp = AESFile.readFullFile(strcat(binPath,filesep,'smpl_roi_traces',filesep,obj.basenames{fl},'_',obj.smplNames{ch}{ii},'.bin'));
-                            else
-                                temp = AESFile.readFullFile(strcat(binPath,filesep,'smpl_roi_traces',filesep,obj.basenames{fl},'_',obj.smplNames{ch}{ii},'_ch',num2str(ch),'.bin'));
-                            end
-                            obj.smplTraces{fl}{ch}{ii} = [mean(temp,2),std(temp,0,2)];
-                            numFinTraces = numFinTraces+1;
-                            if (useDlg)
-                                interruptDialog.Value = numFinTraces/numTotTraces;
-                                if (interruptDialog.CancelRequested)
-                                    return;
-                                end
-                            end
-                        end
-                    end
-                end
-    
                 if (hasBgTraces)
                     if (obj.channels == 1)
                         obj.bgTraces{fl} = cell(1,1);
@@ -313,7 +306,74 @@ classdef AESOutputParser < handle
                         end
                     end
                 end
-                
+
+                if (hasAesTraces)
+                    obj.aesTraces{fl} = cell(obj.channels,1);
+                    for ch = 1:obj.channels
+                        numTraces = length(obj.aesNames{ch});
+                        obj.aesTraces{fl}{ch} = cell(numTraces,1);
+                        for ii=1:numTraces
+                            fname = strcat(binPath,filesep,'aes_roi_traces',filesep,obj.basenames{fl},'_',obj.aesNames{ch}{ii});
+                            if (obj.traceZeroed)
+                                fname = strcat(fname,'_zeroed');
+                            end
+
+                            if (obj.channels==1)
+                                fname = strcat(fname,'.bin');
+                            else
+                                fname = strcat(fname,'_ch',num2str(ch),'.bin');
+                            end
+                            temp = AESFile.readFullFile(fname);
+
+                            if (hasBgTraces && obj.traceZeroed)
+                                obj.aesTraces{fl}{ch}{ii} = [(mean(temp,2)-obj.bgTraces{fl}{ch}(:,1)),std(temp,0,2)];
+                            else
+                                obj.aesTraces{fl}{ch}{ii} = [mean(temp,2),std(temp,0,2)];
+                            end
+                            numFinTraces = numFinTraces+1;
+                            if (useDlg)
+                                interruptDialog.Value = numFinTraces/numTotTraces;
+                                if (interruptDialog.CancelRequested)
+                                    return;
+                                end
+                            end
+                        end
+                    end
+                end
+    
+                if (hasSmplTraces)
+                    obj.smplTraces{fl} = cell(obj.channels,1);
+                    for ch = 1:obj.channels
+                        numTraces = length(obj.smplNames{ch});
+                        obj.smplTraces{fl}{ch} = cell(numTraces,1);
+                        for ii=1:numTraces
+                            fname = strcat(binPath,filesep,'smpl_roi_traces',filesep,obj.basenames{fl},'_',obj.smplNames{ch}{ii});
+                            if (obj.traceZeroed)
+                                fname = strcat(fname,'_zeroed');
+                            end
+
+                            if (obj.channels==1)
+                                fname = strcat(fname,'.bin');
+                            else
+                                fname = strcat(fname,'_ch',num2str(ch),'.bin');
+                            end
+                            temp = AESFile.readFullFile(fname);
+
+                            if (hasBgTraces&&obj.traceZeroed)
+                                obj.smplTraces{fl}{ch}{ii} = [(mean(temp,2)-obj.bgTraces{fl}{ch}(:,1)),std(temp,0,2)];
+                            else
+                                obj.smplTraces{fl}{ch}{ii} = [mean(temp,2),std(temp,0,2)];
+                            end
+                            numFinTraces = numFinTraces+1;
+                            if (useDlg)
+                                interruptDialog.Value = numFinTraces/numTotTraces;
+                                if (interruptDialog.CancelRequested)
+                                    return;
+                                end
+                            end
+                        end
+                    end
+                end
     
                 if (hasMtnTraces)
                     obj.mtnTraces{fl} = AESFile.readFullFile(strcat(binPath,filesep,obj.basenames{fl},'_displacement.bin'));
@@ -349,6 +409,7 @@ classdef AESOutputParser < handle
                     end
                 end
             end
+            obj.traceZeroed = obj.traceZeroed && ~hasBgTraces;
 
             %% get video information
             % read in projection
@@ -371,6 +432,8 @@ classdef AESOutputParser < handle
                 vidAppend = '_motion_corrected.tif';
             elseif (exist(strcat(tempName,'_compressed.tif'),'file'))
                 vidAppend = '_compressed.tif';
+            elseif (exist(strcat(tempName,'_processed.tif'),'file'))
+                vidAppend = '_processed.tif';
             end
 
             if (~isempty(vidAppend))

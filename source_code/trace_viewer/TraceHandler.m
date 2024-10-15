@@ -13,6 +13,7 @@ classdef TraceHandler < handle
         numFiles
         aesNumPx
         smplNumPx
+        traceZeroed
         
         % booleans telling if traces are available
         hasAes
@@ -82,6 +83,7 @@ classdef TraceHandler < handle
             obj.mtnTraces = outputParser.mtnTraces;
             obj.splitChannel = outputParser.splitChannels;
             obj.channels = outputParser.channels;
+            obj.traceZeroed = outputParser.traceZeroed;
             obj.channel = 1;
             obj.fps = 1;
             obj.fIndex = 1;
@@ -219,7 +221,7 @@ classdef TraceHandler < handle
         end
 
         function subtractBG(obj,enable)
-            obj.sbtrBG = (enable && ~isempty(obj.bgTraces));
+            obj.sbtrBG = (enable && ~isempty(obj.bgTracesRef));
         end
 
         function showOverlap(obj,enable)

@@ -24,12 +24,17 @@ classdef StackTracker < handle
         w
     end
 
+    properties (SetAccess = public)
+        frameLimit
+    end
+
     methods
         function obj = StackTracker(params)
             params = validateParams(params);
             obj.channels = params.channels;
             obj.bidirectional = params.bidirectional;
             obj.bidiShift = params.bidiShift;
+            obj.frameLimit = [];
         end
 
         % open tiff reader and setup image parameters
@@ -196,9 +201,16 @@ classdef StackTracker < handle
         function countFrames(obj)
             obj.tin.setDirectory(1);
             obj.frames = 1;
-            while (~obj.tin.lastDirectory())
-                obj.frames = obj.frames + 1;
-                obj.tin.nextDirectory();
+            if (isempty(obj.frameLimit))
+                while (~obj.tin.lastDirectory())
+                    obj.frames = obj.frames + 1;
+                    obj.tin.nextDirectory();
+                end
+            else
+                while (~obj.tin.lastDirectory() && (obj.frames < obj.frameLimit))
+                    obj.frames = obj.frames + 1;
+                    obj.tin.nextDirectory();
+                end
             end
             obj.frames = obj.frames * (obj.bidirectional + 1) / obj.channels;
             obj.tin.setDirectory(1);

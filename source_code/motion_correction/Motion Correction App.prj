@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="1626858391" file="C:\Users\ScanImage\Desktop\AES_image_tools_v5\motion_correction\Motion Correction App.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v5\motion_correction" name="Motion Correction App" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="4030707377" file="D:\research\aes_image_tools\motion_correction\Motion Correction App.prj" location="D:\research\aes_image_tools\motion_correction" name="Motion Correction App" target="target.mlapps" target-name="Package App">
     <param.appname>Motion Correction App</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,7 +12,7 @@
     </param.icons>
     <param.summary>Process videos created using AES.</param.summary>
     <param.description>Handles motion correction and trace extraction for videos made using AES.</param.description>
-    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp63145ec4_9d58_44ec_a7ef_53609b121886.png</param.screenshot>
+    <param.screenshot>C:\Users\erics\AppData\Local\Temp\tp4ab54c1f_eee3_4552_8180_15a9555104e9.png</param.screenshot>
     <param.version>3.0</param.version>
     <param.products.name />
     <param.products.id />
@@ -40,6 +40,7 @@
       <file>${PROJECT_ROOT}\+helper_apps\auto_roi_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\BC_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\bidirectional_shift_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\centerApp.m</file>
       <file>${PROJECT_ROOT}\+helper_apps\channel_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\mtn_output_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\playback_helper_app.mlapp</file>
@@ -60,12 +61,19 @@
     </fileset.resources>
     <fileset.package />
     <build-deliverables>
-      <file location="C:\Users\ScanImage\Desktop\AES_image_tools_v5" name="motion_correction" optional="false">C:\Users\ScanImage\Desktop\AES_image_tools_v5\motion_correction</file>
+      <file location="D:\research\aes_image_tools" name="motion_correction" optional="false">D:\research\aes_image_tools\motion_correction</file>
     </build-deliverables>
     <workflow />
     <matlab>
-      <root>C:\Program Files\MATLAB\R2022b</root>
-      <toolboxes />
+      <root>C:\Program Files\MATLAB\R2023b</root>
+      <toolboxes>
+        <toolbox name="matlabcoder" />
+      </toolboxes>
+      <toolbox>
+        <matlabcoder>
+          <enabled>true</enabled>
+        </matlabcoder>
+      </toolbox>
     </matlab>
     <platform>
       <unix>false</unix>

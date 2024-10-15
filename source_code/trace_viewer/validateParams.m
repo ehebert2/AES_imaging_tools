@@ -20,9 +20,19 @@ function params = validateParams(params)
         params.splitChannels = false;
     end
 
+    if (~isfield(params,'expMask'))
+        params.expMask = [];
+    end
+
+    if (~isfield(params,'compress'))
+        params.compress = false;
+    end
+
     if (~isfield(params,'roiAes'))
         params.roiAes = cell(params.channels);
-        params.compress = false;
+        if (isempty(params.expMask))
+            params.compress = false;
+        end
         params.aesNames = cell(params.channels);
     elseif (~isfield(params,'aesNames'))
         params.aesNames = cell(params.channels);
@@ -71,10 +81,6 @@ function params = validateParams(params)
         end
     end
 
-    if (~isfield(params,'expMask'))
-        params.expMask = [];
-    end
-
     if (~isfield(params,'saveMasks'))
         params.saveMasks = false;
     end
@@ -96,6 +102,10 @@ function params = validateParams(params)
         params.dim = [size(params.roiAes{1},1),size(params.roiAes{1},2)];
     end
 
+    if (~isfield(params,'saveVid'))
+        params.saveVid = false;
+    end
+
     if (~isfield(params,'zeroVid'))
         params.zeroVid = false;
     end
@@ -114,6 +124,10 @@ function params = validateParams(params)
         end
     else
         params.smplTrace = false;
+    end
+
+    if (~isfield(params,'zeroTrace'))
+        params.zeroTrace = false;
     end
 
     if (~isfield(params,'mtn'))
@@ -184,6 +198,10 @@ function params = validateParams(params)
             end
         end
     end    
+
+    if (~isfield(params,'bgTrace'))
+        params.bgTrace = false;
+    end
 
     if (~isfield(params,'bidirectional'))
         params.bidirectional = false;
