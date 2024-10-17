@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="228072483" file="D:\research\aes_image_tools\trace_viewer\Trace Viewer.prj" location="D:\research\aes_image_tools\trace_viewer" name="Trace Viewer" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="2426137107" file="D:\research\aes_image_tools\trace_viewer\Trace Viewer.prj" location="D:\research\aes_image_tools\trace_viewer" name="Trace Viewer" target="target.mlapps" target-name="Package App">
     <param.appname>Trace Viewer</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,7 +12,7 @@
     </param.icons>
     <param.summary>App for quickly viewing output from motion correction app</param.summary>
     <param.description />
-    <param.screenshot>C:\Users\erics\AppData\Local\Temp\tp7d32c113_946d_4f42_a255_0f5d72dc4283.png</param.screenshot>
+    <param.screenshot>C:\Users\erics\AppData\Local\Temp\tp3d3a5913_0956_4de6_a297_fa603e960662.png</param.screenshot>
     <param.version>1.2</param.version>
     <param.products.name />
     <param.products.id />
