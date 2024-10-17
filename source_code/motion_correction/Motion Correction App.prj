@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="1500718513" file="D:\research\aes_image_tools\motion_correction\Motion Correction App.prj" location="D:\research\aes_image_tools\motion_correction" name="Motion Correction App" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="137675764" file="D:\research\aes_image_tools\motion_correction\Motion Correction App.prj" location="D:\research\aes_image_tools\motion_correction" name="Motion Correction App" target="target.mlapps" target-name="Package App">
     <param.appname>Motion Correction App</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,7 +12,7 @@
     </param.icons>
     <param.summary>Process videos created using AES.</param.summary>
     <param.description>Handles motion correction and trace extraction for videos made using AES.</param.description>
-    <param.screenshot>C:\Users\erics\AppData\Local\Temp\tpbe6858a9_ab7a_420b_baa9_e648bf0d5951.png</param.screenshot>
+    <param.screenshot>C:\Users\erics\AppData\Local\Temp\tpc6dac464_5b07_491f_b966_87e7d963a3ec.png</param.screenshot>
     <param.version>3.2</param.version>
     <param.products.name />
     <param.products.id />
