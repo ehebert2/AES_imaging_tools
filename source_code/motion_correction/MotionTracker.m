@@ -323,10 +323,6 @@ classdef MotionTracker < handle
                     obj.corrBase(1:obj.maxHeight,1:obj.maxWidth) = obj.smoothBuf(end:-1:1,end:-1:1);
                     adj_corr = real(ifft2(obj.fftRefImage.*fft2(obj.corrBase)));
                 else
-                    if (obj.spaceBlur > 0)
-                        obj.smoothBuf = conv2(obj.smoothBuf,obj.spaceBlurWght,'same');
-                    end
-    
                     adj_corr = obj.corrBase;
                     for jj = 1:obj.numRois
                         tempRoi = obj.smoothBuf(obj.roiY(jj,1):obj.roiY(jj,2),obj.roiX(jj,1):obj.roiX(jj,2));
@@ -338,10 +334,9 @@ classdef MotionTracker < handle
                     end
                 end
                 [M1,temp_y] = max(adj_corr);
-                [M2,temp_x] = max(M1);
+                [~,temp_x] = max(M1);
                 yDisp = temp_y(temp_x) - obj.maxHeight + obj.dispLog(obj.index,1);
                 xDisp = temp_x - obj.maxWidth + obj.dispLog(obj.index,2);
-
                 obj.dispLog(obj.index,:) = [yDisp,xDisp];
                 if (obj.bidirectional)
                     obj.dispLog((obj.index+1),:) = [yDisp,xDisp];
@@ -432,11 +427,25 @@ classdef MotionTracker < handle
         end
 
         function image = getReference(obj)
-            image = obj.refImage;
+            if (obj.fftXCorr && (obj.spaceBlur > 0))
+                temp = obj.corrBase;
+                temp(1:obj.maxHeight,1:obj.maxWidth) = obj.refImage;
+                temp = real(ifft2(fft2(temp).*abs(obj.spaceBlurWght)));
+                image = temp(1:obj.maxHeight,1:obj.maxWidth);
+            else
+                image = obj.refImage;
+            end
         end
 
         function image = getCompImage(obj)
-            image = obj.smoothBuf;
+            if (obj.fftXCorr && (obj.spaceBlur > 0))
+                temp = obj.corrBase;
+                temp(1:obj.maxHeight,1:obj.maxWidth) = obj.smoothBuf;
+                temp = real(ifft2(fft2(temp).*abs(obj.spaceBlurWght)));
+                image = temp(1:obj.maxHeight,1:obj.maxWidth);
+            else
+                image = obj.smoothBuf;
+            end
         end
 
         function [xDisp,yDisp] = getDisp(obj)
@@ -547,7 +556,7 @@ classdef MotionTracker < handle
                 obj.fftRefImage(1:obj.maxHeight,1:obj.maxWidth) = obj.refImage;
                 obj.fftRefImage = fft2(obj.fftRefImage);
                 if (obj.spaceBlur > 0)
-                    obj.fftRefImage = obj.fftRefImage .* obj.spaceBlurWght.^2;
+                    obj.fftRefImage = obj.fftRefImage .* obj.spaceBlurWght .* conj(obj.spaceBlurWght);
                 end
             else
                 if (obj.spaceBlur > 0)                

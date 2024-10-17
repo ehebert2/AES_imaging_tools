@@ -14,7 +14,7 @@
     <param.company />
     <param.summary>Process videos created using AES.</param.summary>
     <param.description>Handles motion correction and trace extraction for videos made using AES.</param.description>
-    <param.screenshot>D:\research\aes_image_tools\thumbnail\thumbnail_compression_app.png</param.screenshot>
+    <param.screenshot>D:\research\aes_image_tools\graphics\splash_screens\thumbnail_compression_app.png</param.screenshot>
     <param.guid />
     <param.installpath.string>\Motion_correction_app\</param.installpath.string>
     <param.installpath.combo>option.installpath.programfiles</param.installpath.combo>
@@ -46,7 +46,9 @@
 	 
  Input Arguments 
 	 -?  print help on how to use the application 
-	 input arguments</param.help.text>
+	 input arguments 
+ Description 
+ 	 Handles motion correction and trace extraction for videos made using AES (Adaptive Excitation Source).</param.help.text>
     <unset>
       <param.email />
       <param.company />

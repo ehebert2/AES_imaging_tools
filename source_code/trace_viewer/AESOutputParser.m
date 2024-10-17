@@ -455,7 +455,7 @@ classdef AESOutputParser < handle
                     params.channels = obj.channels;
                     stackManager = StackTracker(params);
                     for fl=1:numFiles
-                        obj.projImages(:,:,:,fl) = stackManager.buildProjection(obj.vidFiles{fl},2000,interruptDialog);
+                        obj.projImages(:,:,:,fl) = stackManager.buildProjection(obj.vidFiles{fl},3000,interruptDialog);
                     end
                 else
                     if (isempty(obj.dimension))

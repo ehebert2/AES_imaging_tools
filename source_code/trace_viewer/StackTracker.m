@@ -24,12 +24,17 @@ classdef StackTracker < handle
         w
     end
 
+    properties (SetAccess = public)
+        frameLimit
+    end
+
     methods
         function obj = StackTracker(params)
             params = validateParams(params);
             obj.channels = params.channels;
             obj.bidirectional = params.bidirectional;
             obj.bidiShift = params.bidiShift;
+            obj.frameLimit = [];
         end
 
         % open tiff reader and setup image parameters
@@ -103,12 +108,8 @@ classdef StackTracker < handle
         function proj = buildProjection(obj,filename,frames,dlg)
             obj.open(filename);
             proj = zeros(obj.h,obj.w,(obj.channels*(1+obj.bidirectional)));
-            useDlg = ~isempty(dlg);
-            if (useDlg)
-                dlg.Indeterminate = "on";
-                dlg.Title = "Counting Frames...";
-            end
-
+            dlg.Indeterminate = "on";
+            dlg.Title = "Counting Frames...";
             if (frames==0)
                 obj.getNumFrames();
                 obj.frames = obj.frames/(1+obj.bidirectional);
@@ -120,17 +121,14 @@ classdef StackTracker < handle
                 end
                 obj.frames = obj.frames/obj.channels;
             end
-
-            if (useDlg)
-                dlg.Indeterminate = 'off';
-                dlg.Title = 'Loading Image...';
-            end
+            dlg.Indeterminate = 'off';
+            dlg.Title = 'Loading Image...';
 
             obj.tin.setDirectory(1);
             notify_count = round(obj.frames/20);
             obj.index = 0;
             for fr=1:obj.frames
-                if (mod(fr,notify_count)==0 && useDlg)
+                if (mod(fr,notify_count)==0)
                     dlg.Message = ['Frame (',num2str(fr),'/',num2str(obj.frames),')'];
                     dlg.Value = fr/obj.frames;
                 end
@@ -203,9 +201,16 @@ classdef StackTracker < handle
         function countFrames(obj)
             obj.tin.setDirectory(1);
             obj.frames = 1;
-            while (~obj.tin.lastDirectory())
-                obj.frames = obj.frames + 1;
-                obj.tin.nextDirectory();
+            if (isempty(obj.frameLimit))
+                while (~obj.tin.lastDirectory())
+                    obj.frames = obj.frames + 1;
+                    obj.tin.nextDirectory();
+                end
+            else
+                while (~obj.tin.lastDirectory() && (obj.frames < obj.frameLimit))
+                    obj.frames = obj.frames + 1;
+                    obj.tin.nextDirectory();
+                end
             end
             obj.frames = obj.frames * (obj.bidirectional + 1) / obj.channels;
             obj.tin.setDirectory(1);
