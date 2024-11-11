@@ -1,0 +1,2 @@
+This code was used to feed AES illumination patterns into the AWG during imaging.
+This is a modified version of the code by Bo Li at https://github.com/Bo-Li-ORCID-0000-0003-1492-0919/Adaptive-excitation-source-for-high-speed-multi-photon-microscopy
