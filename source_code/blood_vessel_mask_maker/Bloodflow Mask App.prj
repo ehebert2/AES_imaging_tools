@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="1898787209" file="D:\research\aes_image_tools\blood_vessel_mask_maker\Bloodflow Mask App.prj" location="D:\research\aes_image_tools\blood_vessel_mask_maker" name="Bloodflow Mask App" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="4105329489" file="D:\research\aes_image_tools\blood_vessel_mask_maker\Bloodflow Mask App.prj" location="D:\research\aes_image_tools\blood_vessel_mask_maker" name="Bloodflow Mask App" target="target.mlapps" target-name="Package App">
     <param.appname>Bloodflow Mask App</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,7 +12,7 @@
     </param.icons>
     <param.summary>Creates masks by thresholding for use with AES.</param.summary>
     <param.description />
-    <param.screenshot>C:\Users\erics\AppData\Local\Temp\tpdd6a1797_53fc_4915_a42b_c60ff6c1bc38.png</param.screenshot>
+    <param.screenshot>C:\Users\erics\AppData\Local\Temp\tp88133e97_13fc_4d61_b92f_955e6686fa37.png</param.screenshot>
     <param.version>1.0</param.version>
     <param.products.name />
     <param.products.id />

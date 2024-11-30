@@ -1,9 +1,6 @@
 classdef MaskGenerator < handle
-    properties (GetAccess = private)
-        threshold
-        minFeature
-        border
-        
+    properties (GetAccess = private, SetAccess = private)
+        ignoreSize = 3;
         neighbors = [-1, 0; 1, 0; 0, -1; 0, 1];
         validNeighborMap
         numNeighbors
@@ -17,25 +14,31 @@ classdef MaskGenerator < handle
         kernel
     end
 
-    properties (GetAccess = public)
-        sizes
-    end
-
-    properties (GetAccess = public, SetAccess = public)
+    properties (GetAccess = public, SetAccess = private)
         image
+        sizes
         baseMask
         fullMask
         excludedMask
+        border
+    end
+
+    properties (GetAccess = public, SetAccess = public)
+        minFeature
+        threshold
     end
 
     methods
-        function obj = MaskGenerator(threshold, minFeature,border,image)
-            obj.threshold = threshold;
-            obj.minFeature = minFeature;
-            obj.setBorder(border);
+        function obj = MaskGenerator(image)
+            obj.threshold = max(image,[],'all');
+            obj.minFeature = 0;
+            obj.setBorder(0);
             obj.numNeighbors = size(obj.neighbors,1);
 
             obj.image = image;
+            obj.baseMask = 0*image;
+            obj.fullMask = 0*image;
+            obj.excludedMask = 0*image;
             obj.numPx = numel(image);
             obj.x=repmat(1:size(image,2),size(image,1),1);
             obj.y=repmat((1:size(image,1))',1,size(image,2));
@@ -80,6 +83,11 @@ classdef MaskGenerator < handle
                 end
             end
 
+            blockSize = 250;
+            blobInd = 0;
+            obj.blobs = boolean(zeros(size(obj.blob,1),size(obj.blob,2),blockSize));
+            obj.sizes = zeros(blockSize,1);
+
             while(seedInd<obj.numPx)
                 frontierInd = 1;
                 obj.frontier(1,:) = [obj.y(seedInd),obj.x(seedInd)];
@@ -105,13 +113,24 @@ classdef MaskGenerator < handle
                 while (~obj.searchMask(seedInd) && (seedInd<obj.numPx))
                     seedInd = seedInd+1;
                 end
-                obj.blobs = cat(3,obj.blobs,obj.blob);
+                blobSize = sum(obj.blob,'all');
+                if (blobSize>obj.ignoreSize)
+                    if ((blobInd)==length(obj.sizes))
+                        newLen = length(obj.sizes)+blockSize;
+                        tempSizes = zeros(newLen,1);
+                        tempBlobs = boolean(zeros(size(obj.blob,1),size(obj.blob,2),newLen));
+                        tempSizes(1:blobInd) = obj.sizes;
+                        tempBlobs(:,:,1:blobInd) = obj.blobs;
+                        obj.sizes = tempSizes;
+                        obj.blobs = tempBlobs;
+                    end
+                    blobInd = blobInd + 1;
+                    obj.sizes(blobInd) = blobSize;
+                    obj.blobs(:,:,blobInd) = obj.blob;
+                end
             end
-
-            obj.sizes = zeros(size(obj.blobs,3),1);
-            for ii=1:length(obj.sizes)
-                obj.sizes(ii) = sum(obj.blobs(:,:,ii),'all');
-            end
+            obj.sizes = sqrt(obj.sizes(1:blobInd));
+            obj.blobs = obj.blobs(:,:,1:blobInd);
 
             [obj.sizes,ind] = sort(obj.sizes);
             obj.blobs = obj.blobs(:,:,ind);
@@ -151,18 +170,6 @@ classdef MaskGenerator < handle
         function setBorder(obj,border)
             obj.border = border;
             obj.kernel = ones(2*obj.border+1,2*obj.border+1);
-        end
-
-        function setThreshold(obj,threshold)
-            obj.threshold = threshold;
-        end
-
-        function setMinFeature(obj,minFeature)
-            obj.minFeature = minFeature;
-        end
-
-        function setBaseMask(obj,mask)
-            obj.baseMask = mask;
         end
     end
 end
