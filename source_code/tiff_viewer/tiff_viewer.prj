@@ -1,0 +1,84 @@
+<deployment-project plugin="plugin.apptool" plugin-version="1.0">
+  <configuration build-checksum="3732687338" file="D:\research\aes_image_tools\tiff_viewer\tiff_viewer.prj" location="D:\research\aes_image_tools\tiff_viewer" name="tiff_viewer" target="target.mlapps" target-name="Package App">
+    <param.appname>tiff_viewer</param.appname>
+    <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
+    <param.email />
+    <param.company />
+    <param.icon>${PROJECT_ROOT}\tiff_viewer_resources\icon_24.png</param.icon>
+    <param.icons>
+      <file>${PROJECT_ROOT}\tiff_viewer_resources\icon_48.png</file>
+      <file>${PROJECT_ROOT}\tiff_viewer_resources\icon_24.png</file>
+      <file>${PROJECT_ROOT}\tiff_viewer_resources\icon_16.png</file>
+    </param.icons>
+    <param.summary>View Tiff stream from hard drive without reading whole stack into memory.</param.summary>
+    <param.description />
+    <param.screenshot>C:\Users\erics\AppData\Local\Temp\tpd1b0a214_2aa1_4f28_bb75_5fc732c8b4fb.png</param.screenshot>
+    <param.version>2.0</param.version>
+    <param.products.name />
+    <param.products.id />
+    <param.products.version />
+    <param.platforms />
+    <param.output>${PROJECT_ROOT}</param.output>
+    <param.guid>b4cfef14-1345-4a09-879f-a2a540ca2764</param.guid>
+    <unset>
+      <param.email />
+      <param.company />
+      <param.description />
+      <param.products.name />
+      <param.products.id />
+      <param.products.version />
+      <param.platforms />
+      <param.output />
+    </unset>
+    <fileset.main>
+      <file>${PROJECT_ROOT}\tiff_viewer.mlapp</file>
+    </fileset.main>
+    <fileset.depfun>
+      <file>${PROJECT_ROOT}\+helper_apps\BC_channel_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\bidirectional_shift_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\centerApp.m</file>
+      <file>${PROJECT_ROOT}\+helper_apps\playback_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\small_channel_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\framebackward.png</file>
+      <file>${PROJECT_ROOT}\frameforward.png</file>
+      <file>${PROJECT_ROOT}\pause.png</file>
+      <file>${PROJECT_ROOT}\play.png</file>
+      <file>${PROJECT_ROOT}\StackTracker.m</file>
+      <file>${PROJECT_ROOT}\stop.png</file>
+      <file>${PROJECT_ROOT}\tiff_viewer_app_icon.png</file>
+      <file>${PROJECT_ROOT}\validateParams.m</file>
+    </fileset.depfun>
+    <fileset.resources />
+    <fileset.package />
+    <build-deliverables>
+      <file location="D:\research\aes_image_tools" name="tiff_viewer" optional="false">D:\research\aes_image_tools\tiff_viewer</file>
+    </build-deliverables>
+    <workflow />
+    <matlab>
+      <root>C:\Program Files\MATLAB\R2023b</root>
+      <toolboxes>
+        <toolbox name="matlabcoder" />
+      </toolboxes>
+      <toolbox>
+        <matlabcoder>
+          <enabled>true</enabled>
+        </matlabcoder>
+      </toolbox>
+    </matlab>
+    <platform>
+      <unix>false</unix>
+      <mac>false</mac>
+      <windows>true</windows>
+      <win2k>false</win2k>
+      <winxp>false</winxp>
+      <vista>false</vista>
+      <linux>false</linux>
+      <solaris>false</solaris>
+      <osver>10.0</osver>
+      <os32>false</os32>
+      <os64>true</os64>
+      <arch>win64</arch>
+      <matlab>true</matlab>
+    </platform>
+  </configuration>
+</deployment-project>
