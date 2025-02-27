@@ -1,3 +1,8 @@
+%%%%%%%%%%%%%%%%%%%
+% used to make sure all fields expected in motion struct are present and
+% make a degree of sense
+%%%%%%%%%%%%%%%%%%%
+
 function params = validateParams(params)
     if (~isfield(params,'channels'))
         params.channels = 1;
@@ -15,9 +20,29 @@ function params = validateParams(params)
         params.splitChannels = false;
     end
 
+    if (~isfield(params,'volume'))
+        params.volume = false;
+    end
+
+    if (~isfield(params,'slices'))
+        params.slices = 1;
+    elseif (params.slices < 1)
+        params.slices = 1;
+    end
+
+    if (~isfield(params,'expMask'))
+        params.expMask = [];
+    end
+
+    if (~isfield(params,'compress'))
+        params.compress = false;
+    end
+
     if (~isfield(params,'roiAes'))
         params.roiAes = cell(params.channels);
-        params.compress = false;
+        if (isempty(params.expMask))
+            params.compress = false;
+        end
         params.aesNames = cell(params.channels);
     elseif (~isfield(params,'aesNames'))
         params.aesNames = cell(params.channels);
@@ -66,10 +91,6 @@ function params = validateParams(params)
         end
     end
 
-    if (~isfield(params,'expMask'))
-        params.expMask = [];
-    end
-
     if (~isfield(params,'saveMasks'))
         params.saveMasks = false;
     end
@@ -89,6 +110,10 @@ function params = validateParams(params)
         end
     else
         params.dim = [size(params.roiAes{1},1),size(params.roiAes{1},2)];
+    end
+
+    if (~isfield(params,'saveVid'))
+        params.saveVid = false;
     end
 
     if (~isfield(params,'zeroVid'))
@@ -111,6 +136,10 @@ function params = validateParams(params)
         params.smplTrace = false;
     end
 
+    if (~isfield(params,'zeroTrace'))
+        params.zeroTrace = false;
+    end
+
     if (~isfield(params,'mtn'))
         params.mtn = false;
     end
@@ -122,7 +151,11 @@ function params = validateParams(params)
         params.passes = 1;
         params.intlPasses = 1;
         params.fft = false;
-        params.mtnOverlap = false;
+        if (params.splitChannels)
+            params.mtnOverlap = (zeros(params.channels,1)>0);
+        else
+            params.mtnOverlap = false;
+        end
     else
         if (~isfield(params,'mtnIntlWndw'))
             params.mtnIntlWndw = 1;
@@ -153,7 +186,7 @@ function params = validateParams(params)
         end
 
         if (params.splitChannels)
-            if (~iscell(params.mtnOverlap))
+            if (length(params.mtnOverlap)==1)
                 if (params.mtnOverlap)
                     params.mtnOverlap = (zeros(params.channels,1)>0);
                     for ch=1:params.channels
@@ -166,12 +199,19 @@ function params = validateParams(params)
                 end
             end
         else
-            params.mtnOverlap = (zeros(params.channels,1)>0);
-            if ((params.numRoiAes(1)>0)&&(params.numRoiSmpl(1)>0))
-                params.mtnOverlap = ~params.mtnOverlap;
+            if (length(params.mtnOverlap)>1)
+                params.mtnOverlap = params.mtnOverlap(1);
+            end
+
+            if ((params.numRoiAes(1)==0)||(params.numRoiSmpl(1)==0))
+                params.mtnOverlap = false;
             end
         end
     end    
+
+    if (~isfield(params,'bgTrace'))
+        params.bgTrace = false;
+    end
 
     if (~isfield(params,'bidirectional'))
         params.bidirectional = false;
@@ -184,13 +224,6 @@ function params = validateParams(params)
 
     if (~isfield(params,'multiVid'))
         params.multiVid = false;
-        params.splitFolders = false;
-    elseif (params.multiVid)
-        if (~isfield(params,'splitFolders'))
-            params.splitFolders = false;
-        end
-    else
-        params.splitFolders = false;
     end
 
     if (~isfield(params,'proj'))

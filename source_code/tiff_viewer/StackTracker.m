@@ -226,6 +226,10 @@ classdef StackTracker < handle
             end
         end
 
+        function image = getVolumeImage(obj,channel,slice)
+            image = obj.buffer(:,:,slice,channel);
+        end
+
         % get all images stored from current frame index
         function images = getFrame(obj)
             if (obj.bidirectional && ~obj.volume)
@@ -259,7 +263,7 @@ classdef StackTracker < handle
             end
 
             if (obj.index > 0)
-                obj.tin.setDirectory((realFrame-1)*obj.channels);
+                obj.tin.setDirectory((realFrame-1)*obj.channels*obj.slices);
             else
                 obj.tin.setDirectory(1);
             end

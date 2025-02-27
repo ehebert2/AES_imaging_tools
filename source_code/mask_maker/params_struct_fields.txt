@@ -2,6 +2,7 @@ This is just to help me remember what fields the params struct contains.
 
 	channels: 	how many channels
 	mainChannel: 	channel referenced for motion correction
+	splitChannels:	different masks for each channel
 	bidirectional: 	if bidirectional slow axis scanning was used
 	bidiShift: 	shift on upper half of image to compensate for time delay in bidirectional scanning
 	volume:		Is the stack a 3D volume
