@@ -25,6 +25,10 @@ classdef ThresholdMaskHandler < handle
         slice
     end
 
+    properties (GetAccess = public, SetAccess = public)
+        maskFiller
+    end
+
     methods
         function obj = ThresholdMaskHandler(callingApp,params,images)
             obj.callingApp = callingApp;
@@ -98,10 +102,14 @@ classdef ThresholdMaskHandler < handle
                     obj.maskGenerators{sl,obj.channel}.setBorder(border);
                     obj.maskGenerators{sl,obj.channel}.buildBorder();
                 end
+                obj.maskFiller.updateMaskCh();
+                obj.callingApp.updateSwLabels();
                 obj.callingApp.updateChOcc();
             else
                 obj.maskGenerators{obj.slice,obj.channel}.setBorder(border);
                 obj.maskGenerators{obj.slice,obj.channel}.buildBorder();
+                obj.maskFiller.updateMask();
+                obj.callingApp.updateSwLabels();
                 obj.callingApp.updateOcc();
             end
 
@@ -134,6 +142,8 @@ classdef ThresholdMaskHandler < handle
             end
 
             obj.updateMasks();
+            obj.maskFiller.updateMaskTot();
+            obj.callingApp.updateSwLabels();
             obj.callingApp.updateTotOcc();
         end
 
@@ -163,6 +173,8 @@ classdef ThresholdMaskHandler < handle
             end
 
             obj.updateMasks();
+            obj.maskFiller.updateMaskTot();
+            obj.callingApp.updateSwLabels();
             obj.callingApp.updateTotOcc();
         end
 
@@ -185,6 +197,8 @@ classdef ThresholdMaskHandler < handle
                 end
             end
             obj.updateMasks();
+            obj.maskFiller.updateMaskCh();
+            obj.callingApp.updateSwLabels();
             obj.callingApp.updateTotOcc();
         end
 
@@ -219,9 +233,11 @@ classdef ThresholdMaskHandler < handle
             obj.excludedMask = 0*obj.excludedMask;
             obj.selectedMask = 0*obj.selectedMask;
             obj.fullMask = obj.baseMask;
+            obj.maskFiller.visible = false;
         end
 
         function chngThreshold(obj, thresholdType, threshold)
+            obj.maskFiller.visible = true;
             if (obj.chngAllSlices)
                 for sl=1:obj.slices
                     obj.maskGenerators{sl,obj.channel}.thresholdType = thresholdType;
@@ -241,6 +257,7 @@ classdef ThresholdMaskHandler < handle
                         obj.maskGenerators{sl,obj.channel}.buildBorder();
                     end
                 end
+                obj.maskFiller.updateMaskCh();
                 obj.callingApp.updateChOcc();
             else
                 obj.maskGenerators{obj.slice,obj.channel}.thresholdType = thresholdType;
@@ -257,10 +274,12 @@ classdef ThresholdMaskHandler < handle
                 else
                     obj.maskGenerators{obj.slice,obj.channel}.buildBorder();
                 end
+                obj.maskFiller.updateMask();
                 obj.callingApp.updateOcc();
             end
             obj.maskGenerators{obj.slice,obj.channel}.deselectROI();
             obj.updateMasks();
+            obj.callingApp.updateSwLabels();
         end
 
         function chngSizeFast(obj, minFeature)
@@ -275,9 +294,11 @@ classdef ThresholdMaskHandler < handle
             end
             obj.fullMask = obj.baseMask;
             obj.selectedMask = 0*obj.selectedMask;
+            obj.maskFiller.visible = false;
         end
 
         function chngSize(obj,minFeature)
+            obj.maskFiller.visible = true;
             if (obj.chngAllSlices)
                 for sl=1:obj.slices
                     obj.maskGenerators{sl,obj.channel}.minFeature = minFeature;
@@ -291,6 +312,7 @@ classdef ThresholdMaskHandler < handle
                         obj.maskGenerators{sl,obj.channel}.buildBorder();
                     end
                 end
+                obj.maskFiller.updateMaskCh();
                 obj.callingApp.updateChOcc();
             else
                 obj.maskGenerators{obj.slice,obj.channel}.minFeature = minFeature;
@@ -300,11 +322,13 @@ classdef ThresholdMaskHandler < handle
                 else
                     obj.maskGenerators{obj.slice,obj.channel}.buildBorder();
                 end
+                obj.maskFiller.updateMask();
                 obj.callingApp.updateOcc();
             end
 
             obj.maskGenerators{obj.slice,obj.channel}.deselectROI();
             obj.updateMasks();
+            obj.callingApp.updateSwLabels();
         end
 
         %% Other functions

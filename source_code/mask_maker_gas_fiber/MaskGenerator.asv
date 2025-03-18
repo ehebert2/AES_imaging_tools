@@ -90,17 +90,16 @@ classdef MaskGenerator < handle
         end
 
         function thresholdMask(obj)
-            if (obj.thresholdType == obj.ADAPTIVE)
+            if (obj.thresholdTLyp)
+                sensitivity = -(obj.threshold+1);
                 minVal = min(obj.image,[],'all');
-                obj.baseMask = imbinarize(((obj.image-minVal)/(max(obj.image,[],'all')-minVal)),'adaptive','ForegroundPolarity','bright','Sensitivity',obj.sensitivity);
-            elseif (obj.thresholdType == obj.OTSU)
-                obj.baseMask = obj.image > obj.otsuThresh;
+                obj.baseMask = imbinarize(((obj.image-minVal)/(max(obj.image,[],'all')-minVal)),'adaptive','ForegroundPolarity','bright','Sensitivity',sensitivity);
             else
                 obj.baseMask = obj.image > obj.threshold;
             end
             obj.excludedMask = 0*obj.excludedMask;
 
-            if ((obj.maxHole > 1) && ((obj.threshold < obj.maxImVal) || (obj.thresholdType ~= obj.GLOBAL)))
+            if ((obj.maxHole > 1) && (obj.threshold < obj.maxImVal))
                 obj.removeHoles();
             end
         end
@@ -332,7 +331,7 @@ classdef MaskGenerator < handle
             [obj.imBinY,obj.imBinX] = hist(obj.image(:),50);
             obj.otsuCurve = obj.imBinX(1:(end-1))*0;
             muPre = obj.imBinX.*obj.imBinY;
-            for ii=1:(length(obj.imBinX)-1)
+            for ii=1:(length(bins)-1)
                 w0 = sum(obj.imBinY(1:ii));
                 w1 = sum(obj.imBinY((ii+1):end));
                 mu0 = sum(muPre(1:ii))/w0;

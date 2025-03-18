@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="53742763" file="C:\Users\ScanImage\Desktop\AES_image_tools_v8\mask_maker\AES mask app.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v8\mask_maker" name="AES mask app" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="1720493751" file="C:\Users\ScanImage\Desktop\AES_image_tools_v8\mask_maker\AES mask app.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v8\mask_maker" name="AES mask app" target="target.mlapps" target-name="Package App">
     <param.appname>AES mask app</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,7 +12,7 @@
     </param.icons>
     <param.summary>Generate masks for use with AES.</param.summary>
     <param.description />
-    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tpd620475a_c769_4273_b162_0d4bf8ab248d.png</param.screenshot>
+    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp09256a95_8d33_4f24_8013_9c2cec199b31.png</param.screenshot>
     <param.version>3.0</param.version>
     <param.products.name />
     <param.products.id />
@@ -44,7 +44,6 @@
       <file>${PROJECT_ROOT}\+helper_apps\images\play.png</file>
       <file>${PROJECT_ROOT}\+helper_apps\images\stop.png</file>
       <file>${PROJECT_ROOT}\+helper_apps\images\thumbnail_mask_app.png</file>
-      <file>${PROJECT_ROOT}\+helper_apps\mask_output_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\mask_threshold_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\playback_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\MaskGenerator.m</file>
