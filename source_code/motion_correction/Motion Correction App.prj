@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="137675764" file="D:\research\aes_image_tools\motion_correction\Motion Correction App.prj" location="D:\research\aes_image_tools\motion_correction" name="Motion Correction App" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="3566537432" file="C:\Users\ScanImage\Desktop\AES_image_tools_v8\motion_correction\Motion Correction App.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v8\motion_correction" name="Motion Correction App" target="target.mlapps" target-name="Package App">
     <param.appname>Motion Correction App</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,8 +12,8 @@
     </param.icons>
     <param.summary>Process videos created using AES.</param.summary>
     <param.description>Handles motion correction and trace extraction for videos made using AES.</param.description>
-    <param.screenshot>C:\Users\erics\AppData\Local\Temp\tpc6dac464_5b07_491f_b966_87e7d963a3ec.png</param.screenshot>
-    <param.version>3.2</param.version>
+    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp7c6e9536_c098_47fa_98e2_f4628d91bf85.png</param.screenshot>
+    <param.version>3.5</param.version>
     <param.products.name />
     <param.products.id />
     <param.products.version />
@@ -61,19 +61,12 @@
     </fileset.resources>
     <fileset.package />
     <build-deliverables>
-      <file location="D:\research\aes_image_tools" name="motion_correction" optional="false">D:\research\aes_image_tools\motion_correction</file>
+      <file location="C:\Users\ScanImage\Desktop\AES_image_tools_v8" name="motion_correction" optional="false">C:\Users\ScanImage\Desktop\AES_image_tools_v8\motion_correction</file>
     </build-deliverables>
     <workflow />
     <matlab>
-      <root>C:\Program Files\MATLAB\R2023b</root>
-      <toolboxes>
-        <toolbox name="matlabcoder" />
-      </toolboxes>
-      <toolbox>
-        <matlabcoder>
-          <enabled>true</enabled>
-        </matlabcoder>
-      </toolbox>
+      <root>C:\Program Files\MATLAB\R2022b</root>
+      <toolboxes />
     </matlab>
     <platform>
       <unix>false</unix>

@@ -11,7 +11,9 @@ classdef MaskHandler < handle
         expMaskPropPrev
 
         roiSmpl
+        roiSmplOutline
         roiSmplPrev
+        roiSmplOutlinePrev
         roiSmplRef
         roiSmplProp
         roiSmplPropPrev
@@ -19,12 +21,16 @@ classdef MaskHandler < handle
         numRoiSmpl
 
         roiAes
+        roiAesOutline
         roiAesPrev
+        roiAesOutlinePrev
         roiAesRef
         roiAesProp
         roiAesPropPrev
         roiAesNames
         numRoiAes
+
+        outlineKernel
     end
 
     properties (GetAccess = public)
@@ -38,6 +44,9 @@ classdef MaskHandler < handle
         roiSlctImage
         roiAesSlct
         roiSmplSlct
+
+        showOutlineSmpl
+        showOutlineAes
     end
 
     methods
@@ -50,8 +59,10 @@ classdef MaskHandler < handle
             obj.roiAesNames = cell(obj.channels,1);
             obj.roiSmpl = cell(obj.channels,1);
             obj.roiSmplRef = cell(obj.channels,1);
+            obj.roiSmplOutline = cell(obj.channels,1);
             obj.roiAes = cell(obj.channels,1);
             obj.roiAesRef = cell(obj.channels,1);
+            obj.roiAesOutline = cell(obj.channels,1);
             obj.expMask = zeros(obj.dim(1),obj.dim(2),obj.channels);
             obj.expMaskRef = zeros(obj.dim(1),obj.dim(2),obj.channels);
             obj.roiSmplProp = cell(obj.channels,1);
@@ -61,20 +72,32 @@ classdef MaskHandler < handle
                 obj.roiSmplNames{ch} = {};
                 obj.roiAesNames{ch} = {};
                 obj.roiSmpl{ch} = ([]>0);
+                obj.roiSmplOutline{ch} = ([]>0);
                 obj.roiSmplRef{ch} = [];
                 obj.roiAes{ch} = ([]>0);
+                obj.roiAesOutline{ch} = ([]>0);
                 obj.roiAesRef{ch} = [];
                 obj.roiSmplProp{ch} = [];
                 obj.roiAesProp{ch} = [];
             end
             obj.numRoiSmpl = zeros(obj.channels,1);
             obj.numRoiAes = zeros(obj.channels,1);
+            obj.showOutlineSmpl = false;
+            obj.showOutlineAes = false;
+            tempR = 2;
+            tempX = (-tempR):tempR;
+            tempX = repmat(tempX,(2*tempR+1),1);
+            tempY = (-tempR):tempR;
+            tempY = repmat(tempY',1,(2*tempR+1));
+            obj.outlineKernel = ((tempX.^2+tempY.^2) <= (tempR^2));
+            obj.outlineKernel = obj.outlineKernel * 1.01 / sum(obj.outlineKernel,'all');
         end
 
         %% functions for adding/removing/renaming masks
         function addRoiSmpl(obj, name, mask)
             obj.roiSmplRef{obj.channel} = cat(3,obj.roiSmplRef{obj.channel},mask);
             obj.roiSmpl{obj.channel} = cat(3,obj.roiSmpl{obj.channel},mask);
+            obj.roiSmplOutline{obj.channel} = cat(3,obj.roiSmplOutline{obj.channel},obj.buildOutline(mask));
             obj.roiSmplNames{obj.channel} = [obj.roiSmplNames{obj.channel},name];
             obj.roiSmplProp{obj.channel} = [obj.roiSmplProp{obj.channel};[0,0,0]];
             obj.numRoiSmpl(obj.channel) = obj.numRoiSmpl(obj.channel) + 1;
@@ -84,6 +107,7 @@ classdef MaskHandler < handle
         function addRoiAes(obj, name, mask)
             obj.roiAesRef{obj.channel} = cat(3,obj.roiAesRef{obj.channel},mask);
             obj.roiAes{obj.channel} = cat(3,obj.roiAes{obj.channel},mask);
+            obj.roiAesOutline{obj.channel} = cat(3,obj.roiAesOutline{obj.channel},obj.buildOutline(mask));
             obj.roiAesNames{obj.channel} = [obj.roiAesNames{obj.channel},name];
             obj.roiAesProp{obj.channel} = [obj.roiAesProp{obj.channel};[0,0,0]];
             obj.numRoiAes(obj.channel) = obj.numRoiAes(obj.channel) + 1;
@@ -93,6 +117,7 @@ classdef MaskHandler < handle
         function removeRoiSmpl(obj,toRemove)
             obj.roiSmplRef{obj.channel} = obj.roiSmplRef{obj.channel}(:,:,~toRemove);
             obj.roiSmpl{obj.channel} = obj.roiSmpl{obj.channel}(:,:,~toRemove);
+            obj.roiSmplOutline{obj.channel} = obj.roiSmplOutline{obj.channel}(:,:,~toRemove);
             obj.roiSmplNames{obj.channel} = obj.roiSmplNames{obj.channel}(~toRemove);
             obj.roiSmplProp{obj.channel} = obj.roiSmplProp{obj.channel}(~toRemove,:);
             obj.numRoiSmpl(obj.channel) = obj.numRoiSmpl(obj.channel) - sum(toRemove);
@@ -102,6 +127,7 @@ classdef MaskHandler < handle
         function removeRoiAes(obj,toRemove)
             obj.roiAesRef{obj.channel} = obj.roiAesRef{obj.channel}(:,:,~toRemove);
             obj.roiAes{obj.channel} = obj.roiAes{obj.channel}(:,:,~toRemove);
+            obj.roiAesOutline{obj.channel} = obj.roiAesOutline{obj.channel}(:,:,~toRemove);
             obj.roiAesNames{obj.channel} = obj.roiAesNames{obj.channel}(~toRemove);
             obj.roiAesProp{obj.channel} = obj.roiAesProp{obj.channel}(~toRemove,:);
             obj.numRoiAes(obj.channel) = obj.numRoiAes(obj.channel) - sum(toRemove);
@@ -180,22 +206,38 @@ classdef MaskHandler < handle
                 obj.roiAesImage = zeros(obj.dim);
                 aesSlctImage = zeros(obj.dim);
             else
-                obj.roiAesImage = sum(obj.roiAes{obj.channel},3);
-                obj.roiAesImage = obj.roiAesImage > 0;
                 obj.roiAesSlct = obj.roiAesSlct > 0;
-                aesSlctImage = sum(obj.roiAes{obj.channel}(:,:,obj.roiAesSlct),3);
+                if (obj.showOutlineAes)
+                    obj.roiAesImage = sum(obj.roiAesOutline{obj.channel},3);
+                    aesSlctImage = sum(obj.roiAesOutline{obj.channel}(:,:,obj.roiAesSlct),3);
+                else
+                    obj.roiAesImage = sum(obj.roiAes{obj.channel},3);
+                    aesSlctImage = sum(obj.roiAes{obj.channel}(:,:,obj.roiAesSlct),3);
+                end
+                obj.roiAesImage = obj.roiAesImage > 0;
             end
 
             if (isempty(obj.roiSmpl{obj.channel}))
                 obj.roiSmplImage = zeros(obj.dim);
                 smplSlctImage = zeros(obj.dim);
             else
-                obj.roiSmplImage = sum(obj.roiSmpl{obj.channel},3);
-                obj.roiSmplImage = obj.roiSmplImage > 0;
                 obj.roiSmplSlct = obj.roiSmplSlct > 0;
-                smplSlctImage = sum(obj.roiSmpl{obj.channel}(:,:,obj.roiSmplSlct),3);
+                if (obj.showOutlineSmpl)
+                    obj.roiSmplImage = sum(obj.roiSmplOutline{obj.channel},3);
+                    smplSlctImage = sum(obj.roiSmplOutline{obj.channel}(:,:,obj.roiSmplSlct),3);
+                else
+                    obj.roiSmplImage = sum(obj.roiSmpl{obj.channel},3);
+                    smplSlctImage = sum(obj.roiSmpl{obj.channel}(:,:,obj.roiSmplSlct),3);
+                end
+                obj.roiSmplImage = obj.roiSmplImage > 0;
             end
             obj.roiSlctImage = (aesSlctImage + smplSlctImage) > 0;
+        end
+
+        function maskOutline = buildOutline(obj,mask)
+            maskOutline = conv2(mask,obj.outlineKernel,'same');
+            maskOutline = maskOutline >= 1;
+            maskOutline = mask - maskOutline;
         end
 
         %% functions for adjusting mask position/sizes
@@ -205,7 +247,9 @@ classdef MaskHandler < handle
             obj.roiAesPropPrev = obj.roiAesProp{obj.channel};
             obj.expMaskPropPrev = obj.expMaskProp(obj.channel,:);
             obj.roiSmplPrev = obj.roiSmpl{obj.channel};
+            obj.roiSmplOutlinePrev = obj.roiSmplOutline{obj.channel};
             obj.roiAesPrev = obj.roiAes{obj.channel};
+            obj.roiAesOutlinePrev = obj.roiAesOutline{obj.channel};
             obj.expMaskPrev = obj.expMask(:,:,obj.channel);
         end
 
@@ -215,7 +259,9 @@ classdef MaskHandler < handle
             obj.roiAesProp{obj.channel} = obj.roiAesPropPrev;
             obj.expMaskProp(obj.channel,:) = obj.expMaskPropPrev;
             obj.roiSmpl{obj.channel} = obj.roiSmplPrev;
+            obj.roiSmplOutline{obj.channel} = obj.roiSmplOutlinePrev;
             obj.roiAes{obj.channel} = obj.roiAesPrev;
+            obj.roiAesOutline{obj.channel} = obj.roiAesOutlinePrev;
             obj.expMask(:,:,obj.channel) = obj.expMaskPrev;
         end
 
@@ -229,18 +275,22 @@ classdef MaskHandler < handle
                     obj.roiAesProp{obj.channel} = repmat([x,y,mgn],obj.numRoiAes(obj.channel),1);
                     for ii=1:obj.numRoiAes(obj.channel)
                         obj.roiAes{obj.channel}(:,:,ii) = obj.redrawMask(obj.roiAesRef{obj.channel}(:,:,ii),x,y,mgn);
+                        obj.roiAesOutline{obj.channel}(:,:,ii) = obj.buildOutline(obj.roiAes{obj.channel}(:,:,ii));
                     end
                 case MaskType.AES
                     obj.roiAesProp{obj.channel}(index,:) = [x,y,mgn];
                     obj.roiAes{obj.channel}(:,:,index) = obj.redrawMask(obj.roiAesRef{obj.channel}(:,:,index),x,y,mgn);
+                    obj.roiAesOutline{obj.channel}(:,:,index) = obj.buildOutline(obj.roiAes{obj.channel}(:,:,index));
                 case MaskType.SMPLALL
                     obj.roiSmplProp{obj.channel} = repmat([x,y,mgn],obj.numRoiSmpl(obj.channel),1);
                     for ii=1:obj.numRoiSmpl(obj.channel)
                         obj.roiSmpl{obj.channel}(:,:,ii) = obj.redrawMask(obj.roiSmplRef{obj.channel}(:,:,ii),x,y,mgn);
+                        obj.roiSmplOutline{obj.channel}(:,:,ii) = obj.buildOutline(obj.roiSmpl{obj.channel}(:,:,ii));
                     end
                 case MaskType.SMPL
                     obj.roiSmplProp{obj.channel}(index,:) = [x,y,mgn];
                     obj.roiSmpl{obj.channel}(:,:,index) = obj.redrawMask(obj.roiSmplRef{obj.channel}(:,:,index),x,y,mgn);
+                    obj.roiSmplOutline{obj.channel}(:,:,index) = obj.buildOutline(obj.roiSmpl{obj.channel}(:,:,index));
             end
         end
 
@@ -250,6 +300,7 @@ classdef MaskHandler < handle
             obj.roiAesSlct = 0*obj.roiAesSlct+1;
             for ii=1:obj.numRoiAes(obj.channel)
                 obj.roiAes{obj.channel}(:,:,ii) = obj.redrawMask(obj.roiAesRef{obj.channel}(:,:,ii),prop(1),prop(2),prop(3));
+                obj.roiAesOutline{obj.channel}(:,:,ii) = obj.buildOutline(obj.roiAes{obj.channel}(:,:,ii));
             end
         end
 
@@ -259,6 +310,7 @@ classdef MaskHandler < handle
             obj.roiSmplSlct = 0*obj.roiSmplSlct+1;
             for ii=1:obj.numRoiSmpl(obj.channel)
                 obj.roiSmpl{obj.channel}(:,:,ii) = obj.redrawMask(obj.roiSmplRef{obj.channel}(:,:,ii),prop(1),prop(2),prop(3));
+                obj.roiSmplOutline{obj.channel}(:,:,ii) = obj.buildOutline(obj.roiSmpl{obj.channel}(:,:,ii));
             end
         end
 
@@ -306,6 +358,16 @@ classdef MaskHandler < handle
         function num = getNumSmpl(obj)
             num = obj.numRoiSmpl(obj.channel);
         end 
+
+        function setOutlineAes(obj,enable)
+            obj.showOutlineAes = enable;
+            obj.buildRoiImage();
+        end
+
+        function setOutlineSmpl(obj,enable)
+            obj.showOutlineSmpl = enable;
+            obj.buildRoiImage();
+        end
         
         %% Other Functions
         % Change color channel

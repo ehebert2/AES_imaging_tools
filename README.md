@@ -10,9 +10,6 @@ A simple tool for generating binary masks over an image and saving them as uncom
 ## Trace Viewer App
 A tool for getting a quick look at the output from the motion correction app before deciding whether a more thorough analysis is worthwhile. It is not intended for final processing of the data. A more complete description of this tool is contained in the "Trace Viewer App Manual" word document.
 
-## Tiff Viewer App
-A tool for quickly viewing data from the microscope. Normally FIJI would be the default; however, it reads the entire stack into memory, which can cause problems for large stacks. This app reads in a few images at time, which helps with memory limitations. Additionally, it makes transformations to account for quirks in our microscope aquisition (i.e. single plane bidirectional imaging reads 2 frames into each image and inverts one of them).
-
 # Installation
 The apps can either be run from the source code in the app designer environment or installed as MATLAB apps. Additionally, the Trace Viewer App and Motion Correction App can be installed as standalone applications using the MATLAB 2023b runtime, allowing them to run without opening MATLAB. The MATLAB app install files are located in installation\matlab_app while the standalone installation excecutables are located in installation\standalone_app. \for_redistribution subfolders contain the excecutable for installing the full application with the runtime while the \for_redistribution_files_only subfolders contain an application file that requires the MATLAB runtime to be already installed.
 

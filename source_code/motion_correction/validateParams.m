@@ -20,6 +20,16 @@ function params = validateParams(params)
         params.splitChannels = false;
     end
 
+    if (~isfield(params,'volume'))
+        params.volume = false;
+    end
+
+    if (~isfield(params,'slices'))
+        params.slices = 1;
+    elseif (params.slices < 1)
+        params.slices = 1;
+    end
+
     if (~isfield(params,'expMask'))
         params.expMask = [];
     end

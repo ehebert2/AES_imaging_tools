@@ -8,6 +8,9 @@ classdef StackTracker < handle
         channels
         bidirectional
         bidiShift
+        volume
+        slices
+
         filename
         tin
         frames
@@ -35,6 +38,9 @@ classdef StackTracker < handle
             obj.bidirectional = params.bidirectional;
             obj.bidiShift = params.bidiShift;
             obj.frameLimit = [];
+            obj.slices = params.slices;
+            obj.volume = params.volume;
+            obj.resetLimit = round(5000*(1+(1-obj.volume)*obj.bidirectional)/(obj.channels*obj.slices));
         end
 
         % open tiff reader and setup image parameters
@@ -43,7 +49,14 @@ classdef StackTracker < handle
             if (isempty(obj.filename))
                 obj.tin = Tiff(filename,'r');
                 tempTiff = read(obj.tin);
-                if (obj.bidirectional)
+                obj.w = size(tempTiff,2);
+                if (obj.volume)
+                    obj.h = size(tempTiff,1);
+                    obj.buffer = int16(zeros(obj.h,obj.w,obj.slices,obj.channels));
+                    if (~obj.bidirectional)
+                        obj.frameParity = true;
+                    end
+                elseif (obj.bidirectional)
                     obj.htot = size(tempTiff,1);
                     obj.h = floor(obj.htot/2);
                     obj.buffer = int16(zeros(obj.h,size(tempTiff,2),(2*obj.channels)));
@@ -51,7 +64,6 @@ classdef StackTracker < handle
                     obj.buffer = int16(zeros(size(tempTiff,1),size(tempTiff,2),obj.channels));
                     obj.h = size(tempTiff,1);
                 end
-                obj.w = size(tempTiff,2);
                 obj.frames = 0;
             elseif (~strcmp(obj.filename,filename))
                 if (~isempty(obj.tin))
@@ -75,23 +87,55 @@ classdef StackTracker < handle
         % if relevant
         function readFrame(obj)
             obj.index = obj.index+1;
-            if (~obj.bidirectional)
-                for ch = 1:obj.channels
-                    if (obj.index > 1 || ch > 1)
-                        obj.tin.nextDirectory();
+            if (mod(obj.index,obj.resetLimit) == 0)
+                tempDirIn = obj.tin.currentDirectory();
+                close(obj.tin);
+                clear obj.tin;
+                obj.tin = Tiff(obj.filename,'r');
+                obj.tin.setDirectory(tempDirIn);
+            end
+
+            if (obj.volume)
+                if (obj.bidirectional)
+                    obj.frameParity = (mod(obj.index,2)==1);
+                end
+                    
+                if (obj.frameParity)
+                    for sl = 1:obj.slices
+                        for ch = 1:obj.channels
+                            if (obj.index > 1 || ch > 1 || sl > 1)
+                                obj.tin.nextDirectory();
+                            end
+                            obj.buffer(:,:,sl,ch) = read(obj.tin);
+                        end
                     end
-                    obj.buffer(:,:,ch) = read(obj.tin);
+                else
+                    for sl = 1:obj.slices
+                        for ch = 1:obj.channels
+                            obj.tin.nextDirectory();
+                            obj.buffer(:,:,obj.slices-sl+1,ch) = flipud(read(obj.tin));
+                        end
+                    end
                 end
             else
-                obj.frameParity = (mod(obj.index,2)==1);
-                if (obj.frameParity)
+                if (~obj.bidirectional)
                     for ch = 1:obj.channels
                         if (obj.index > 1 || ch > 1)
                             obj.tin.nextDirectory();
                         end
-                        tempTiff = read(obj.tin);
-                        obj.buffer(:,:,(2*ch-1)) = circshift(tempTiff(1:obj.h,:),obj.bidiShift,1);
-                        obj.buffer(:,:,(2*ch)) = flipud(tempTiff((obj.htot-obj.h+1):obj.htot,:));
+                        obj.buffer(:,:,ch) = read(obj.tin);
+                    end
+                else
+                    obj.frameParity = (mod(obj.index,2)==1);
+                    if (obj.frameParity)
+                        for ch = 1:obj.channels
+                            if (obj.index > 1 || ch > 1)
+                                obj.tin.nextDirectory();
+                            end
+                            tempTiff = read(obj.tin);
+                            obj.buffer(:,:,(2*ch-1)) = circshift(tempTiff(1:obj.h,:),obj.bidiShift,1);
+                            obj.buffer(:,:,(2*ch)) = flipud(tempTiff((obj.htot-obj.h+1):obj.htot,:));
+                        end
                     end
                 end
             end
@@ -107,19 +151,26 @@ classdef StackTracker < handle
         % reference images)
         function proj = buildProjection(obj,filename,frames,dlg)
             obj.open(filename);
-            proj = zeros(obj.h,obj.w,(obj.channels*(1+obj.bidirectional)));
+            if (obj.volume)
+                proj = zeros(obj.h,obj.w,obj.slices,(obj.channels*(1+obj.bidirectional)));
+            else
+                proj = zeros(obj.h,obj.w,(obj.channels*(1+obj.bidirectional)));
+            end
             dlg.Indeterminate = "on";
             dlg.Title = "Counting Frames...";
             if (frames==0)
                 obj.getNumFrames();
-                obj.frames = obj.frames/(1+obj.bidirectional);
+                if (~obj.volume)
+                    obj.frames = obj.frames/(1+obj.bidirectional);
+                end
             else
                 obj.frames = 1;
-                while(~obj.tin.lastDirectory && obj.frames < (frames*obj.channels))
+                upperLim = frames*obj.channels*obj.slices*(1+obj.bidirectional*obj.volume);
+                while(~obj.tin.lastDirectory && obj.frames < upperLim)
                     obj.frames = obj.frames + 1;
                     obj.tin.nextDirectory();
                 end
-                obj.frames = obj.frames/obj.channels;
+                obj.frames = obj.frames/(obj.channels*obj.slices);
             end
             dlg.Indeterminate = 'off';
             dlg.Title = 'Loading Image...';
@@ -134,15 +185,27 @@ classdef StackTracker < handle
                 end
 
                 obj.readFrame();
-                if (obj.bidirectional)
-                    obj.index = obj.index+1;
-                    for ch=1:obj.channels
-                        proj(:,:,(2*ch-1))=proj(:,:,(2*ch-1))+double(obj.buffer(:,:,(2*ch-1)))/obj.frames;
-                        proj(:,:,(2*ch))=proj(:,:,(2*ch))+double(obj.buffer(:,:,(2*ch)))/obj.frames;
+                if (obj.volume)
+                    for sl=1:obj.slices
+                        for ch=1:obj.channels
+                            if (obj.bidirectional)
+                                proj(:,:,sl,2*ch-obj.frameParity) = proj(:,:,sl,2*ch-obj.frameParity) + double(obj.buffer(:,:,sl,ch))*2/obj.frames;
+                            else
+                                proj(:,:,sl,ch) = proj(:,:,sl,ch) + double(obj.buffer(:,:,sl,ch))/obj.frames;
+                            end
+                        end
                     end
                 else
-                    for ch=1:obj.channels
-                        proj(:,:,ch) = proj(:,:,ch)+double(obj.buffer(:,:,ch))/obj.frames;
+                    if (obj.bidirectional)
+                        obj.index = obj.index+1;
+                        for ch=1:obj.channels
+                            proj(:,:,(2*ch-1))=proj(:,:,(2*ch-1))+double(obj.buffer(:,:,(2*ch-1)))/obj.frames;
+                            proj(:,:,(2*ch))=proj(:,:,(2*ch))+double(obj.buffer(:,:,(2*ch)))/obj.frames;
+                        end
+                    else
+                        for ch=1:obj.channels
+                            proj(:,:,ch) = proj(:,:,ch)+double(obj.buffer(:,:,ch))/obj.frames;
+                        end
                     end
                 end
             end
@@ -163,9 +226,13 @@ classdef StackTracker < handle
             end
         end
 
+        function image = getVolumeImage(obj,channel,slice)
+            image = obj.buffer(:,:,slice,channel);
+        end
+
         % get all images stored from current frame index
         function images = getFrame(obj)
-            if (obj.bidirectional)
+            if (obj.bidirectional && ~obj.volume)
                 if (obj.frameParity)
                     images = obj.buffer(:,:,(2*(1:obj.channels)-1));
                 else
@@ -187,10 +254,16 @@ classdef StackTracker < handle
 
         % set place in video
         function setIndex(obj, frame)
-            realFrame = ceil(frame/(1+obj.bidirectional));
-            obj.index = (realFrame-1)*(1+obj.bidirectional);
+            if (obj.volume)
+                realFrame = frame;
+                obj.index = realFrame-1;
+            else
+                realFrame = ceil(frame/(1+obj.bidirectional));
+                obj.index = (realFrame-1)*(1+obj.bidirectional);
+            end
+
             if (obj.index > 0)
-                obj.tin.setDirectory((realFrame-1)*obj.channels);
+                obj.tin.setDirectory((realFrame-1)*obj.channels*obj.slices);
             else
                 obj.tin.setDirectory(1);
             end
@@ -212,7 +285,11 @@ classdef StackTracker < handle
                     obj.tin.nextDirectory();
                 end
             end
-            obj.frames = obj.frames * (obj.bidirectional + 1) / obj.channels;
+            if (obj.volume)
+                obj.frames = obj.frames / (obj.channels * obj.slices);
+            else
+                obj.frames = obj.frames * (obj.bidirectional + 1) / obj.channels;
+            end
             obj.tin.setDirectory(1);
         end
     end
