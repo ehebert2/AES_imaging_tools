@@ -1,5 +1,5 @@
 classdef PowerModulator < handle
-    properties        
+    properties (GetAccess = private, SetAccess = private)    
         highPx
         lowPx
         pxVals        
@@ -17,17 +17,21 @@ classdef PowerModulator < handle
         slices
         sepChannels
         curveTypes
+        
         refPower
         trans
+        prePower
         v
-        mpOrder
         z
+
+        mpOrder
         sliceSep
         attenLen
         orientation
         numPx
 
         calNames
+        prePowerNames
     end
 
     methods
@@ -52,6 +56,8 @@ classdef PowerModulator < handle
             obj.v = ones(obj.channels,obj.slices);
             obj.refPower = zeros((obj.channels*obj.sepChannels+1-obj.sepChannels),obj.slices);
             obj.calNames = cell((obj.channels*obj.sepChannels+1-obj.sepChannels),1);
+            obj.prePowerNames = cell((obj.channels*obj.sepChannels+1-obj.sepChannels),1);
+            obj.prePower = ones((obj.channels*obj.sepChannels+1-obj.sepChannels),obj.slices);
             obj.calMaps = cell((obj.channels*obj.sepChannels+1-obj.sepChannels),1);
             obj.setIms(ims);
         end
@@ -98,7 +104,7 @@ classdef PowerModulator < handle
                 obj.trans(ch,:) = exp(obj.orientation(ch)*obj.z/(obj.attenLen(ch)*obj.mpOrder));
                 obj.trans(ch,:) = obj.trans(ch,:)/max(obj.trans(ch,:));
             elseif (obj.curveTypes(ch)==obj.INVPOW)
-                obj.trans(ch,:) = 1./(obj.refPower(ch,:).^(1/obj.mpOrder));
+                obj.trans(ch,:) = obj.prePower(ch,:)./(obj.refPower(ch,:).^(1/obj.mpOrder));
                 obj.trans(ch,:) = obj.trans(ch,:)/max(obj.trans(ch,:));
             end
 
@@ -119,7 +125,7 @@ classdef PowerModulator < handle
 
         function fitExp(obj,ch)
             X = [ones(obj.slices,1), obj.z'];
-            Y = log(obj.refPower(ch,:))';
+            Y = log(obj.refPower(ch,:)./(obj.prePower(ch,:).^2))';
             C = inv(X'*X)*X'*Y;
             if (C(2)~=0)
                 obj.orientation(ch) = 1-2*(C(2)>0);
@@ -169,12 +175,66 @@ classdef PowerModulator < handle
             valid = true;
         end
 
+        function save(obj,fname)
+            powerModParams.refPower = obj.refPower;
+            powerModParams.trans = obj.trans;
+            powerModParams.prePower = obj.prePower;
+            powerModParams.calMaps = obj.calMaps;
+            powerModParams.v = obj.v;
+            powerModParams.z = obj.z;
+
+            powerModParams.mpOrder = obj.mpOrder;
+            powerModParams.sliceSep = obj.sliceSep;
+            powerModParams.attenLen = obj.attenLen;
+            powerModParams.orientation = obj.orientation;
+            powerModParams.curveTypes = obj.curveTypes;
+            powerModParams.highPx = obj.highPx;
+            powerModParams.lowPx = obj.lowPx;
+
+            powerModParams.prePowerNames = obj.prePowerNames;
+            powerModParams.calNames = obj.calNames;
+
+            save(fname,"powerModParams",'-append');
+        end
+
+        function success = load(obj,data)
+            success = false;
+            if (~isfield(data,'powerModParams'))
+                return;
+            end
+
+            params = data.powerModParams;
+            obj.refPower = params.refPower;
+            obj.trans = params.trans;
+            obj.prePower = params.prePower;
+            obj.calMaps = params.calMaps;
+            obj.v = params.v;
+            obj.z = params.z;
+
+            obj.mpOrder = params.mpOrder;
+            obj.sliceSep = params.sliceSep;
+            obj.attenLen = params.attenLen;
+            obj.orientation = params.orientation;
+            obj.curveTypes = params.curveTypes;
+            obj.highPx = params.highPx;
+            obj.lowPx = params.lowPx;
+
+            obj.prePowerNames = params.prePowerNames;
+            obj.calNames = params.calNames;
+
+            success = true;
+        end
+
         function factor = getImFactor(obj,ch,sl)
-            factor = obj.trans(ch,sl)^obj.mpOrder;
+            factor = (obj.trans(ch,sl)/obj.prePower(ch,sl))^obj.mpOrder;
         end
 
         function power = getPower(obj,ch)
             power = obj.refPower(ch,:);
+        end
+
+        function power = getPrePower(obj,ch)
+            power = obj.prePower(ch,:);
         end
 
         function t = getTrans(obj,ch)
@@ -246,6 +306,7 @@ classdef PowerModulator < handle
         end
 
         function setCal(obj,ch,cal,calName)
+            ch = ch*obj.sepChannels+1-obj.sepChannels;
             if (isempty(cal))
                 obj.calNames{ch} = [];
                 obj.calMaps{ch} = [];
@@ -270,6 +331,33 @@ classdef PowerModulator < handle
             if (~obj.sepChannels)
                 obj.v = repmat(obj.v(ch,:),obj.channels,1);
             end
+        end
+
+        function success = setPrePower(obj,ch,pow,name)
+            ch = ch*obj.sepChannels+1-obj.sepChannels;
+            success = false;
+            
+            if (isempty(pow))
+                obj.prePowerNames{ch} = [];
+                obj.prePower(ch,:) = ones(1,obj.slices);
+            else
+                pow = pow(:,1);
+                if ((length(pow)~=obj.slices) || (sum(isnan(pow))>0))
+                    return;
+                else
+                    pow = abs(pow);
+                    obj.prePower(ch,:) = pow'/max(pow);
+                    obj.prePowerNames{ch} = name;
+                end
+            end
+
+            obj.calcTrans(ch);
+            obj.calcV(ch);
+            if (~obj.sepChannels)
+                obj.v = repmat(obj.v(ch,:),obj.channels,1);
+            end
+
+            success = true;
         end
     end
 end

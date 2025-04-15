@@ -774,7 +774,7 @@ classdef MaskListenerHandler < handle
 
         % Circle ROI Listeners
         function circMv(obj,src,~)
-            obj.buildCompMask();
+            obj.buildCompMask(true);
             obj.chngROI(src,obj.CIRC);
         end
 

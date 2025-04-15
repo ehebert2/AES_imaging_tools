@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="3722496306" file="C:\Users\ScanImage\Desktop\AES_image_tools_v8\mask_maker\AES mask app.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v8\mask_maker" name="AES mask app" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="2726334261" file="C:\Users\ScanImage\Desktop\AES_image_tools_v8\mask_maker\AES mask app.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v8\mask_maker" name="AES mask app" target="target.mlapps" target-name="Package App">
     <param.appname>AES mask app</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,8 +12,8 @@
     </param.icons>
     <param.summary>Generate masks for use with AES.</param.summary>
     <param.description />
-    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tpe2b31873_49ce_4cca_ad42_925c69be4803.png</param.screenshot>
-    <param.version>3.5</param.version>
+    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tpc2612110_f7aa_4e97_bf78_619e451dbea5.png</param.screenshot>
+    <param.version>3.7</param.version>
     <param.products.name />
     <param.products.id />
     <param.products.version />

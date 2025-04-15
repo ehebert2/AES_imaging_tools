@@ -133,6 +133,7 @@ classdef ThresholdMaskHandler < handle
                 end
             end
 
+            obj.maxHole = maxHole;
             obj.updateMasks();
             obj.callingApp.updateTotOcc();
         end
@@ -207,6 +208,18 @@ classdef ThresholdMaskHandler < handle
 
         function mask = getFullMask(obj,sl,ch)
             mask = obj.maskGenerators{sl,ch}.fullMask;
+        end
+
+        function value = getMaxHole(obj)
+            value = obj.maskGenerators{obj.slice,obj.channel}.maxHole;
+        end
+
+        function value = getChngAllSlices(obj)
+            value = obj.chngAllSlices;
+        end
+
+        function value = getBlockOverlap(obj)
+            value = obj.blockOverlap;
         end
 
         %% threshold and min feature size modifying functions
@@ -384,42 +397,47 @@ classdef ThresholdMaskHandler < handle
         end
 
         function saveROIs(obj,fname)
-            threshMasks = obj.maskGenerators;
-            save(fname,"threshMasks",'-append');
+            realCh = obj.channels*obj.sepChannels+1-obj.sepChannels;
+            threshMaskParams.chngAllSlices = obj.chngAllSlices;
+            threshMaskParams.blockOverlap  = obj.blockOverlap;
+            threshMaskParams.maskData = cell(obj.slices,realCh);
+            obj.maskGenerators{obj.slice,obj.channel}.deselectROI();
+            for sl=1:obj.slices
+                for ch=1:realCh
+                    threshMaskParams.maskData{sl,ch} = obj.maskGenerators{sl,ch}.save();
+                end
+            end
+            save(fname,"threshMaskParams",'-append');
         end
 
         function loadROIs(obj,data)
-            obj.maskGenerators{obj.slice,obj.channel}.deselectROI();
-            if (~isfield(data,'threshMasks'))
-                for ch=1:obj.channels
-                    for sl=1:obj.slices
-                        obj.maskGenerators{sl,ch}.threshold = obj.maskGenerators{sl,obj.channel}.maxImVal;
-                        obj.maskGenerators{sl,ch}.buildBaseMask();
-                        obj.maskGenerators{sl,ch}.buildBorder();
-                    end
-                end
-                obj.updateMasks();
+            if (~isfield(data,'threshMaskParams'))
                 return;
             end
 
-            tempMaskGenerators = data.threshMasks;
-            rangeSl = min(obj.slices,size(tempMaskGenerators,1));
-            rangeCh = min(obj.channels,size(tempMaskGenerators,2));
-            fullCopy = (prod(size(tempMaskGenerators{1,1}.image)==size(obj.maskGenerators{1,1}.image))==1);
-            for sl=1:rangeSl
-                for ch=1:rangeCh
-                    if (fullCopy)
-                        obj.maskGenerators{sl,ch} = tempMaskGenerators{sl,ch};
-                    else
-                        obj.maskGenerators{sl,ch}.threshold = tempMaskGenerators{sl,ch}.threshold;
-                        obj.maskGenerators{sl,ch}.setBorder(tempMaskGenerators{sl,ch}.border);
-                        obj.maskGenerators{sl,ch}.minFeature = tempMaskGenerators{sl,ch}.minFeature;
-                        obj.maskGenerators{sl,ch}.maxHole = tempMaskGenerators{sl,ch}.maxHole;
-                        obj.maskGenerators{sl,ch}.buildBaseMask();
-                        obj.maskGenerators{sl,ch}.buildBorder();
-                    end
+            realCh = obj.channels*obj.sepChannels+1-obj.sepChannels;
+            obj.maskGenerators{obj.slice,obj.channel}.deselectROI();
+            params = data.threshMaskParams;
+            for sl=1:obj.slices
+                for ch=1:realCh
+                    obj.maskGenerators{sl,ch}.load(params.maskData{sl,ch});
                 end
             end
+            obj.maxHole = obj.maskGenerators{1,1}.maxHole;
+            obj.chngAllSlices = params.chngAllSlices;
+            obj.blockOverlap = params.blockOverlap;
+            if (obj.blockOverlap)
+                for ch=1:realCh
+                    obj.removeMaskOverlap(ch);
+                end
+            end
+
+            for sl=1:obj.slices
+                for ch=1:realCh
+                    obj.maskGenerators{sl,ch}.buildBorder();
+                end
+            end
+
             obj.updateMasks();
         end
     end

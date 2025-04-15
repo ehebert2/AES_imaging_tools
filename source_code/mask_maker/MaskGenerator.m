@@ -70,7 +70,7 @@ classdef MaskGenerator < handle
             obj.frontier = zeros(obj.numPx,2);
             obj.blob = image*0;
             obj.roiSelected = false;
-            obj.maxHole = 0;
+            obj.maxHole = 1;
             obj.filterInd = 1;
 
             obj.validNeighborMap = zeros(size(image,1),size(image,2),obj.numNeighbors)>0;
@@ -341,6 +341,33 @@ classdef MaskGenerator < handle
             end
             [~,ind] = max(obj.otsuCurve);
             obj.otsuThresh = obj.imBinX(ind);
+        end
+
+        function params = save(obj)
+            params.border = obj.border;
+            params.baseMask = ((obj.filterMask + obj.excludedMask) > 0);
+            params.threshold = obj.threshold;
+            params.minFeature = obj.minFeature;
+            params.maxHole = obj.maxHole;
+            params.sensitivity = obj.sensitivity;
+            params.thresholdType = obj.thresholdType;
+        end
+
+        function load(obj,maskParams)
+            obj.setBorder(maskParams.border);
+            obj.baseMask = maskParams.baseMask;
+            obj.threshold = maskParams.threshold;
+            obj.minFeature = maskParams.minFeature;
+            obj.maxHole = maskParams.maxHole;
+            obj.sensitivity = maskParams.sensitivity;
+            if (maskParams.thresholdType == obj.OTSU)
+                obj.thresholdType = obj.GLOBAL;
+            else
+                obj.thresholdType = maskParams.thresholdType;
+            end
+
+            obj.blobDet();
+            obj.quickFilter();
         end
     end
 end
