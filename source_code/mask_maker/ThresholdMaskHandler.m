@@ -7,6 +7,7 @@ classdef ThresholdMaskHandler < handle
         slices
         yShift
         bidirectional
+        yBidirectional
         sepChannels
         maskGenerators
 
@@ -53,20 +54,16 @@ classdef ThresholdMaskHandler < handle
             obj.chngAllSlices = false;
             obj.blockOverlap = false;
             obj.bidirectional = params.bidirectional;
-            if (obj.bidirectional)
-                obj.yShift = params.bidiShift;
-            else
-                obj.yShift = 0;
-            end
+            obj.yBidirectional = params.yBidirectional;
 
             obj.maskGenerators = cell(obj.slices,obj.channels);
             for sl=1:obj.slices
                 if (obj.sepChannels)
                     for ch=1:obj.channels
-                        obj.maskGenerators{sl,ch} = MaskGenerator(images(:,:,sl,(1+obj.bidirectional)*ch-obj.bidirectional));
+                        obj.maskGenerators{sl,ch} = MaskGenerator(images(:,:,sl,(1+obj.yBidirectional)*ch));
                     end
                 else
-                    obj.maskGenerators{sl,obj.mainChannel} = MaskGenerator(images(:,:,sl,(1+obj.bidirectional)*obj.mainChannel-obj.bidirectional));
+                    obj.maskGenerators{sl,obj.mainChannel} = MaskGenerator(images(:,:,sl,(1+obj.yBidirectional)*obj.mainChannel));
                 end
             end
         end
@@ -87,11 +84,6 @@ classdef ThresholdMaskHandler < handle
             obj.updateMasks();
         end
 
-        function setYShift(obj,yShift)
-            obj.yShift = yShift;
-            obj.updateMasks();
-        end
-
         function setBorder(obj,border)
             if (obj.chngAllSlices)
                 for sl=1:obj.slices
@@ -105,11 +97,7 @@ classdef ThresholdMaskHandler < handle
                 obj.callingApp.updateOcc();
             end
 
-            if (obj.bidirectional)
-                obj.fullMask = circshift(obj.maskGenerators{obj.slice,obj.channel}.fullMask,obj.yShift,1);
-            else
-                obj.fullMask = obj.maskGenerators{obj.slice,obj.channel}.fullMask;
-            end
+            obj.fullMask = obj.maskGenerators{obj.slice,obj.channel}.fullMask;
         end
 
         function setMaxHole(obj,maxHole)
@@ -142,12 +130,12 @@ classdef ThresholdMaskHandler < handle
             if (obj.sepChannels)
                 for sl=1:obj.slices
                     for ch=1:obj.channels
-                        obj.maskGenerators{sl,ch}.setImage(images(:,:,sl,(1+obj.bidirectional)*ch-obj.bidirectional));
+                        obj.maskGenerators{sl,ch}.setImage(images(:,:,sl,(1+obj.bidirectional)*ch));
                     end
                 end
             else
                 for sl=1:obj.slices
-                    obj.maskGenerators{sl,1}.setImage(images(:,:,sl,(1+obj.bidirectional)*obj.mainChannel-obj.bidirectional));
+                    obj.maskGenerators{sl,1}.setImage(images(:,:,sl,(1+obj.bidirectional)*obj.mainChannel));
                 end
             end
 
@@ -224,11 +212,7 @@ classdef ThresholdMaskHandler < handle
 
         %% threshold and min feature size modifying functions
         function chngThresholdFast(obj, threshold)
-            if (obj.bidirectional)
-                obj.baseMask = circshift(obj.maskGenerators{obj.slice,obj.channel}.image > threshold,obj.yShift,1);
-            else
-                obj.baseMask = obj.maskGenerators{obj.slice,obj.channel}.image > threshold;
-            end
+            obj.baseMask = obj.maskGenerators{obj.slice,obj.channel}.image > threshold;
             obj.excludedMask = 0*obj.excludedMask;
             obj.selectedMask = 0*obj.selectedMask;
             obj.fullMask = obj.baseMask;
@@ -267,10 +251,11 @@ classdef ThresholdMaskHandler < handle
 
                 if (obj.blockOverlap)
                     obj.removeMaskOverlap(obj.channel);
+                    obj.callingApp.updateChOcc();
                 else
                     obj.maskGenerators{obj.slice,obj.channel}.buildBorder();
+                    obj.callingApp.updateOcc();
                 end
-                obj.callingApp.updateOcc();
             end
             obj.maskGenerators{obj.slice,obj.channel}.deselectROI();
             obj.updateMasks();
@@ -279,13 +264,8 @@ classdef ThresholdMaskHandler < handle
         function chngSizeFast(obj, minFeature)
             obj.maskGenerators{obj.slice,obj.channel}.minFeature = minFeature;
             obj.maskGenerators{obj.slice,obj.channel}.quickFilter();
-            if (obj.bidirectional)
-                obj.baseMask = circshift(obj.maskGenerators{obj.slice,obj.channel}.baseMask,obj.yShift,1);
-                obj.excludedMask = circshift(obj.maskGenerators{obj.slice,obj.channel}.excludedMask,obj.yShift,1);
-            else
-                obj.baseMask = obj.maskGenerators{obj.slice,obj.channel}.baseMask;
-                obj.excludedMask = obj.maskGenerators{obj.slice,obj.channel}.excludedMask;
-            end
+            obj.baseMask = obj.maskGenerators{obj.slice,obj.channel}.baseMask;
+            obj.excludedMask = obj.maskGenerators{obj.slice,obj.channel}.excludedMask;
             obj.fullMask = obj.baseMask;
             obj.selectedMask = 0*obj.selectedMask;
         end
@@ -310,10 +290,11 @@ classdef ThresholdMaskHandler < handle
                 obj.maskGenerators{obj.slice,obj.channel}.quickFilter();
                 if (obj.blockOverlap)
                     obj.removeMaskOverlap(obj.channel);
+                    obj.callingApp.updateChOcc();
                 else
                     obj.maskGenerators{obj.slice,obj.channel}.buildBorder();
+                    obj.callingApp.updateOcc();
                 end
-                obj.callingApp.updateOcc();
             end
 
             obj.maskGenerators{obj.slice,obj.channel}.deselectROI();
@@ -337,28 +318,17 @@ classdef ThresholdMaskHandler < handle
         end
 
         function updateMasks(obj)
-            if (obj.bidirectional)
-                obj.baseMask = circshift(obj.maskGenerators{obj.slice,obj.channel}.baseMask,obj.yShift,1);
-                obj.fullMask = circshift(obj.maskGenerators{obj.slice,obj.channel}.fullMask,obj.yShift,1);
-                obj.excludedMask = circshift(obj.maskGenerators{obj.slice,obj.channel}.excludedMask,obj.yShift,1);
-                obj.selectedMask = circshift(obj.maskGenerators{obj.slice,obj.channel}.selectedMask,obj.yShift,1);
-            else
-                obj.baseMask = obj.maskGenerators{obj.slice,obj.channel}.baseMask;
-                obj.fullMask = obj.maskGenerators{obj.slice,obj.channel}.fullMask;
-                obj.excludedMask = obj.maskGenerators{obj.slice,obj.channel}.excludedMask;
-                obj.selectedMask = obj.maskGenerators{obj.slice,obj.channel}.selectedMask;
-            end
+            obj.baseMask = obj.maskGenerators{obj.slice,obj.channel}.baseMask;
+            obj.fullMask = obj.maskGenerators{obj.slice,obj.channel}.fullMask;
+            obj.excludedMask = obj.maskGenerators{obj.slice,obj.channel}.excludedMask;
+            obj.selectedMask = obj.maskGenerators{obj.slice,obj.channel}.selectedMask;
         end
 
         function hit = imgClk(obj,x,y,hold)
-            obj.maskGenerators{obj.slice,obj.channel}.clckDetect(x,(y-obj.bidirectional*obj.yShift),hold);
+            obj.maskGenerators{obj.slice,obj.channel}.clckDetect(x,y,hold);
             hit = obj.maskGenerators{obj.slice,obj.channel}.roiSelected;
             if (hit)
-                if (obj.bidirectional)
-                    obj.selectedMask = circshift(obj.maskGenerators{obj.slice,obj.channel}.selectedMask,obj.yShift,1);
-                else
-                    obj.selectedMask = obj.maskGenerators{obj.slice,obj.channel}.selectedMask;
-                end
+                obj.selectedMask = obj.maskGenerators{obj.slice,obj.channel}.selectedMask;
             else
                 obj.selectedMask = 0*obj.selectedMask;
             end
@@ -371,10 +341,19 @@ classdef ThresholdMaskHandler < handle
 
         function deleteROI(obj)
             obj.maskGenerators{obj.slice,obj.channel}.deleteROI();
-            obj.updateMasks();
+            if (obj.blockOverlap)
+                obj.removeMaskOverlap(obj.channel);
+                obj.updateMasks();
+                obj.callingApp.updateChOcc();
+            else
+                obj.maskGenerators{obj.slice,obj.channel}.buildBorder();
+                obj.updateMasks();
+                obj.callingApp.updateOcc();
+            end
+            obj.callingApp.updateDisplay();
         end
 
-        function printROIMasks(obj,basename,path,ind)
+        function printROIMasks(obj,basename,path,ind,xBevel,yBevel)
             for ch=1:obj.channels
                 if (obj.channels>1)
                     folderTitle = strcat('channel_',num2str(ch));
@@ -391,7 +370,7 @@ classdef ThresholdMaskHandler < handle
                         slPath = chPath;
                     end
 
-                    obj.maskGenerators{sl,ch}.printBlobs(basename,slPath,ind(sl,ch));
+                    obj.maskGenerators{sl,ch}.printBlobs(basename,slPath,ind(sl,ch),xBevel,yBevel);
                 end
             end
         end

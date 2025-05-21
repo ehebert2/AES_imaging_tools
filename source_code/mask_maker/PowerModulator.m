@@ -132,6 +132,7 @@ classdef PowerModulator < handle
                 obj.attenLen(ch) = 1/abs(C(2));
             end
             obj.calcTrans(ch);
+            obj.calcV(ch);
         end
 
         function calcV(obj,ch)

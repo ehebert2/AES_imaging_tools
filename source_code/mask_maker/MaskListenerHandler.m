@@ -226,7 +226,7 @@ classdef MaskListenerHandler < handle
             tempROI.LineWidth = 1;
             obj.currentROI = tempROI;
             obj.currentROIType = roiType;
-            obj.callingApp.setROILabels(obj.ROIParamLabels{obj.currentROIType});
+            obj.callingApp.setROILabels(obj.ROIParamLabels{obj.currentROIType},obj.currentROIType);
             obj.callingApp.enableROIFields(true);
             obj.setFields();
             obj.buildCompMask(true);
@@ -729,8 +729,8 @@ classdef MaskListenerHandler < handle
 
                     for ii=1:length(obj.lineROIs{sl,ch})
                         ind = ind+1;
-                        tempMask = createMask(obj.lineROIs{obj.slice,obj.channel}{ii});
-                        tempMask = imdilate(tempMask,strel('disk',ceil(obj.lineWidths{obj.slice,obj.channel}(ii)/2))) > 0;
+                        tempMask = createMask(obj.lineROIs{sl,ch}{ii});
+                        tempMask = imdilate(tempMask,strel('disk',ceil(obj.lineWidths{sl,ch}(ii)/2))) > 0;
                         ff = fullfile(slPath,strcat(basename,'_',num2str(ind),'.tif'));
                         imwrite((tempMask+0),ff, 'Compression','none');
                     end
@@ -765,7 +765,7 @@ classdef MaskListenerHandler < handle
                 end
                 obj.currentROIType = type;
                 obj.currentROI = roi;
-                obj.callingApp.setROILabels(obj.ROIParamLabels{obj.currentROIType});
+                obj.callingApp.setROILabels(obj.ROIParamLabels{obj.currentROIType},obj.currentROIType);
                 obj.callingApp.enableROIFields(true);
             end
             obj.setFields();

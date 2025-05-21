@@ -6,6 +6,9 @@ classdef OutputFileHandler < handle
     properties
         params
         channels
+        slices
+        isVolume
+        reslice
         aesMasks
         smplMasks
         aesNames
@@ -31,6 +34,9 @@ classdef OutputFileHandler < handle
         projImages
         projFname
         numFrames
+        checkOverlap
+        mtnOverlap
+        bgMeans
 
         image
         images
@@ -44,7 +50,15 @@ classdef OutputFileHandler < handle
     methods
         function obj = OutputFileHandler(params)
             obj.params = validateParams(params);
-            obj.channels = obj.params.channels;
+            obj.reslice = obj.params.reslice;
+            if (obj.reslice)
+                obj.channels = params.reslicer.channelsOut;
+                obj.slices = params.reslicer.slicesOut;
+            else
+                obj.channels = obj.params.channels;
+                obj.slices = params.slices;
+            end
+            obj.isVolume = params.volume && (obj.slices>1);
             obj.aesMasks = obj.params.roiAes;
             obj.aesNames = obj.params.aesNames;
             obj.smplMasks = obj.params.roiSmpl;
@@ -70,16 +84,26 @@ classdef OutputFileHandler < handle
 
             % store useful booleans so I don't have to recalc every frame
             multiChannel = (obj.channels > 1);
+            multiSlice = (obj.slices > 1);
             obj.getBG = obj.params.bgTrace || obj.params.zeroVid || obj.params.zeroTrace;
             obj.sbtrBgFirst = obj.params.zeroTrace && (obj.params.zeroVid || ~obj.params.saveVid);
-            obj.images = int16(zeros(obj.params.dim(1),obj.params.dim(2),obj.channels));
+            obj.images = int16(zeros(obj.params.dim(1),obj.params.dim(2),obj.slices,obj.channels));
+
+            obj.checkOverlap = obj.params.mtnOverlap;
+            if (obj.checkOverlap)
+                obj.mtnOverlap = (zeros(obj.slices,obj.channels)>0);
+                for sl=1:obj.slices
+                    for ch=1:obj.channels
+                        if ((obj.numAes(sl,ch)>0)&&(obj.numSmpl(sl,ch)>0))
+                            obj.mtnOverlap(sl,ch)=true;
+                        end
+                    end
+                end
+                obj.checkOverlap = (sum(obj.mtnOverlap,'all')>0);
+            end
 
             hasTraces = obj.params.aesTrace + obj.params.smplTrace + obj.params.bgTrace + obj.params.mtnTrace;
-            if (obj.params.splitChannels)
-                hasTraces = hasTraces + (sum(obj.params.mtnOverlap) > 0);
-            else
-                hasTraces = hasTraces + obj.params.mtnOverlap;
-            end
+            hasTraces = hasTraces + obj.checkOverlap;
             hasTraces = hasTraces > 0;
             
             % determine output folder for trace data
@@ -130,29 +154,25 @@ classdef OutputFileHandler < handle
                 end
                 aesPath = fullfile(binPath,'aes_roi_traces');
 
-                obj.fAes = cell(obj.channels);
-                if (multiChannel)
+                obj.fAes = cell(obj.slices,obj.channels);
+                for sl=1:obj.slices
                     for ch=1:obj.channels
-                        obj.fAes{ch} = cell(obj.numAes(ch),1);
-                        if (obj.params.zeroTrace)
-                            for ii=1:obj.numAes(ch)
-                                obj.fAes{ch}{ii} = AESFile.getWriter(fullfile(aesPath,strcat(basename,'_',obj.aesNames{ch}{ii},'_zeroed_ch',num2str(ch),'.bin')),sum(obj.aesMasks{ch}(:,:,ii),'all'),numFrames,16,true);
+                        obj.fAes{sl,ch} = cell(obj.numAes(sl,ch),1);
+                        for ii=1:obj.numAes(sl,ch)
+                            aesName = strcat(basename,'_',obj.aesNames{sl,ch}{ii});
+                            if (obj.params.zeroTrace)
+                                aesName = strcat(aesName,'_zeroed');
                             end
-                        else
-                            for ii=1:obj.numAes(ch)
-                                obj.fAes{ch}{ii} = AESFile.getWriter(fullfile(aesPath,strcat(basename,'_',obj.aesNames{ch}{ii},'_ch',num2str(ch),'.bin')),sum(obj.aesMasks{ch}(:,:,ii),'all'),numFrames,16,true);
+                            
+                            if (multiChannel)
+                                aesName = strcat(aesName,'_ch',num2str(ch));
                             end
-                        end
-                    end
-                else
-                    obj.fAes{1} = cell(obj.numAes(1),1);
-                    if (obj.params.zeroTrace)
-                        for ii=1:obj.numAes(1)
-                            obj.fAes{1}{ii} = AESFile.getWriter(fullfile(aesPath,strcat(basename,'_',obj.aesNames{1}{ii},'_zeroed.bin')),sum(obj.aesMasks{1}(:,:,ii),'all'),numFrames,16,true);
-                        end
-                    else
-                        for ii=1:obj.numAes(1)
-                            obj.fAes{1}{ii} = AESFile.getWriter(fullfile(aesPath,strcat(basename,'_',obj.aesNames{1}{ii},'.bin')),sum(obj.aesMasks{1}(:,:,ii),'all'),numFrames,16,true);
+    
+                            if (multiSlice)
+                                aesName = strcat(aesName,'_sl',num2str(sl));
+                            end
+                            aesName = strcat(aesName,'.bin');
+                            obj.fAes{sl,ch}{ii} = AESFile.getWriter(fullfile(aesPath,aesName),sum(obj.aesMasks{sl,ch}(:,:,ii),'all'),numFrames,16,true);
                         end
                     end
                 end
@@ -168,29 +188,25 @@ classdef OutputFileHandler < handle
                 end
                 smplPath = fullfile(binPath,'smpl_roi_traces');
 
-                obj.fSmpl = cell(obj.channels);
-                if (multiChannel)
-                    for ch=1:obj.channels
-                        obj.fSmpl{ch} = cell(obj.numSmpl(ch),1);
-                        if (obj.params.zeroTrace)
-                            for ii=1:obj.numSmpl(ch)
-                                obj.fSmpl{ch}{ii} = AESFile.getWriter(fullfile(smplPath,strcat(basename,'_',obj.smplNames{ch}{ii},'_zeroed_ch',num2str(ch),'.bin')),sum(obj.smplMasks{ch}(:,:,ii),'all'),numFrames,16,true);
+                obj.fSmpl = cell(obj.slices,obj.channels);
+                for ch=1:obj.channels
+                    for sl=1:obj.slices
+                    obj.fSmpl{ch,sl} = cell(obj.numSmpl(sl,ch),1);
+                        for ii=1:obj.numSmpl(sl,ch)
+                            smplName = strcat(basename,'_',obj.smplNames{sl,ch}{ii});
+                            if (obj.params.zeroTrace)
+                                smplName = strcat(smplName,'_zeroed');
                             end
-                        else
-                            for ii=1:obj.numSmpl(ch)
-                                obj.fSmpl{ch}{ii} = AESFile.getWriter(fullfile(smplPath,strcat(basename,'_',obj.smplNames{ch}{ii},'_ch',num2str(ch),'.bin')),sum(obj.smplMasks{ch}(:,:,ii),'all'),numFrames,16,true);
+
+                            if (multiChannel)
+                                smplName = strcat(smplName,'_ch',num2str(ch));
                             end
-                        end
-                    end
-                else
-                    obj.fSmpl{1} = cell(obj.numSmpl(1),1);
-                    if (obj.params.zeroTrace)
-                        for ii=1:obj.numSmpl(1)
-                            obj.fSmpl{1}{ii} = AESFile.getWriter(fullfile(smplPath,strcat(basename,'_',obj.smplNames{1}{ii},'_zeroed.bin')),sum(obj.smplMasks{1}(:,:,ii),'all'),numFrames,16,true);
-                        end
-                    else
-                        for ii=1:obj.numSmpl(1)
-                            obj.fSmpl{1}{ii} = AESFile.getWriter(fullfile(smplPath,strcat(basename,'_',obj.smplNames{1}{ii},'.bin')),sum(obj.smplMasks{1}(:,:,ii),'all'),numFrames,16,true);
+
+                            if (multiSlice)
+                                smplName = strcat(smplName,'_sl',num2str(sl));
+                            end
+                            smplName = strcat(smplName,'.bin');
+                            obj.fSmpl{sl,ch}{ii} = AESFile.getWriter(fullfile(smplPath,smplName),sum(obj.smplMasks{sl,ch}(:,:,ii),'all'),numFrames,16,true);
                         end
                     end
                 end
@@ -198,56 +214,74 @@ classdef OutputFileHandler < handle
 
             % open background mean/std filestreams
             if (obj.params.bgTrace)
-                obj.fBgm = cell(1,obj.channels);
-                if (multiChannel)
-                    for ii = 1:obj.channels
-                        obj.fBgm{ii} = AESFile.getWriter(fullfile(binPath,strcat(basename,'_bg_mean_ch',num2str(ii),'.bin')),2,numFrames,AESFile.DOUBLE,true);
+                obj.fBgm = cell(obj.slices,obj.channels);
+                for sl=1:obj.slices
+                    for ch=1:obj.channels
+                        bgName = strcat(basename,'_bg_mean');
+                        if (multiChannel)
+                            bgName = strcat(bgName,'_ch',num2str(ch));
+                        end
+
+                        if (multiSlice)
+                            bgName = strcat(bgName,'_sl',num2str(sl),'.bin');
+                        end
+                        obj.fBgm{sl,ch} = AESFile.getWriter(fullfile(binPath,bgName),2,numFrames,AESFile.DOUBLE,true);
                     end
-                else
-                    obj.fBgm{1} = AESFile.getWriter(fullfile(binPath,strcat(basename,'_bg_mean.bin')),2,numFrames,AESFile.DOUBLE,true);
                 end
             end
 
             % generate overlap check matrices
-            if (obj.params.splitChannels)
-                if (sum(obj.params.mtnOverlap)>0)
-                    obj.overlapMask = cell(obj.channels,1);
-                    obj.fOver = cell(obj.channels,1);
-                    numRoi = sum(obj.numSmpl(obj.params.mtnOverlap));
-                    tCh = zeros(numRoi,1);
-                    tInd = zeros(numRoi,1);
-                    tName = cell(numRoi,1);
-                    ind = 0;
-                    for ch = 1:obj.channels
-                        if (obj.params.mtnOverlap(ch))
-                            obj.overlapMask{ch} = zeros((2*obj.params.dim(1)-1),(2*obj.params.dim(2)-1),obj.numSmpl(ch));
-                            totalAes = squeeze(sum(obj.aesMasks{ch},3)) > 0;
+            if (obj.checkOverlap)
+                obj.overlapMask = cell(obj.slices,obj.channels);
+                obj.fOver = cell(obj.slices,obj.channels);
+                numRoi = sum(obj.numSmpl.*obj.mtnOverlap,'all');
+                tCh = zeros(numRoi,1);
+                tSl = zeros(numRoi,1);
+                tInd = zeros(numRoi,1);
+                tName = cell(numRoi,1);
+                ind=0;
+                for sl=1:obj.slices
+                    for ch=1:obj.channels
+                        if (obj.mtnOverlap(sl,ch))
+                            obj.overlapMask{sl,ch} = zeros((2*obj.params.dim(1)-1),(2*obj.params.dim(2)-1),obj.numSmpl(sl,ch));
+                            totalAes = squeeze(sum(obj.aesMasks{sl,ch},3))>0;
                             totalAes = totalAes+0.0;
-                            for ii=1:obj.numSmpl(ch)
-                                obj.overlapMask{ch}(:,:,ii) = (xcorr2(totalAes,(obj.smplMasks{ch}(:,:,ii)+0.0))/sum(squeeze(obj.smplMasks{ch}(:,:,ii)),'all')) >= 1;
+                            for ii=1:obj.numSmpl(sl,ch)
+                                obj.overlapMask{sl,ch}(:,:,ii) = (xcorr2(totalAes,(obj.smplMasks{sl,ch}(:,:,ii)+0.0))/sum(squeeze(obj.smplMasks{sl,ch}(:,:,ii)),'all')) >= 1;
                                 ind = ind+1;
                                 tCh(ind) = ch;
+                                tSl(ind) = sl;
                                 tInd(ind) = ii;
-                                tName{ind} = obj.smplNames{ch}{ii};
+                                tName{ind} = obj.smplNames{sl,ch}{ii};
                             end
-                            obj.fOver{ch} = AESFile.getWriter(fullfile(binPath,strcat(basename,'_in_bounds_ch',num2str(ch),'.bin')),obj.numSmpl(ch),numFrames,1,false);
+                            overName = strcat(basename,'_in_bounds');
+                            if (multiChannel)
+                                overName = strcat(overName,'_ch',num2str(ch));
+                            end
+
+                            if (multiSlice)
+                                overName = strcat(overName,'_sl',num2str(sl));
+                            end
+                            overName = strcat(overName,'.bin');
+                            obj.fOver{sl,ch} = AESFile.getWriter(fullfile(binPath,overName),obj.numSmpl(sl,ch),numFrames,1,false);
                         end
                     end
-                    T = table(tCh,tInd,categorical(tName),'VariableNames',{'Channel','Index','ROI Title'});
-                    writetable(T,fullfile(binPath,strcat(basename,'_roi_index.txt')));
                 end
-            else
-                if (obj.params.mtnOverlap)
-                    obj.overlapMask = zeros((2*obj.params.dim(1)-1),(2*obj.params.dim(2)-1),obj.numSmpl(1));
-                    totalAes = squeeze(sum(obj.aesMasks{1},3)) > 0;
-                    totalAes = totalAes+0.0;
-                    for ii=1:obj.numSmpl(1)
-                        obj.overlapMask(:,:,ii) = (xcorr2(totalAes,(obj.smplMasks{1}(:,:,ii)+0.0))/sum(squeeze(obj.smplMasks{1}(:,:,ii)),'all')) >= 1;
+
+                if (multiSlice)
+                    if (multiChannel)
+                        T = table(tCh,tSl,tInd,categorical(tName),'VariableNames',{'Channel','Slice','Index','ROI Title'});
+                    else
+                        T = table(tSl,tInd,categorical(tName),'VariableNames',{'Slice','Index','ROI Title'});
                     end
-                    T = table((1:obj.numSmpl(1))',categorical(obj.smplNames{1}'),'VariableNames',{'Index','ROI Title'});
-                    writetable(T,fullfile(binPath,strcat(basename,'_roi_index.txt')));
-                    obj.fOver = AESFile.getWriter(fullfile(binPath,strcat(basename,'_in_bounds.bin')),obj.numSmpl(1),numFrames,1,false);
+                else
+                    if (multiChannel)
+                        T = table(tCh,tInd,categorical(tName),'VariableNames',{'Channel','Index','ROI Title'});
+                    else
+                        T = table(tInd,categorical(tName),'VariableNames',{'Index','ROI Title'});
+                    end
                 end
+                writetable(T,fullfile(binPath,strcat(basename,'_roi_index.txt')));
             end
 
             % open file streams if saving motion registration displacement
@@ -272,24 +306,36 @@ classdef OutputFileHandler < handle
         % close file output streams
         function close(obj)
             if (obj.params.aesTrace)
-                for ch = 1:obj.channels
-                    for ii = 1:obj.numAes(ch)
-                        fclose(obj.fAes{ch}{ii});
+                for sl=1:obj.slices
+                    for ch = 1:obj.channels
+                        for ii = 1:obj.numAes(sl,ch)
+                            fclose(obj.fAes{sl,ch}{ii});
+                        end
                     end
                 end
             end
 
             if(obj.params.smplTrace)
-                for ch = 1:obj.channels
-                    for ii = 1:obj.numSmpl(ch)
-                        fclose(obj.fSmpl{ch}{ii});
+                for sl=1:obj.slices
+                    for ch = 1:obj.channels
+                        for ii = 1:obj.numSmpl(sl,ch)
+                            fclose(obj.fSmpl{sl,ch}{ii});
+                        end
                     end
                 end
             end
 
             if (obj.params.bgTrace)
-                for ii = 1:obj.channels
-                    fclose(obj.fBgm{ii});
+                if (obj.reslice)
+                    for sl=1:obj.slices
+                        for ch=1:obj.channels
+                            fclose(obj.fBgm{sl,ch});
+                        end
+                    end
+                else
+                    for ch = 1:obj.channels
+                        fclose(obj.fBgm{ch});
+                    end
                 end
             end
 
@@ -298,15 +344,13 @@ classdef OutputFileHandler < handle
                     fclose(obj.fMtn);
                 end
 
-                if (obj.params.splitChannels)
-                    for ch=1:obj.channels
-                        if (obj.params.mtnOverlap(ch))
-                            fclose(obj.fOver{ch});
+                if (obj.checkOverlap)
+                    for sl=1:obj.slices
+                        for ch=1:obj.channels
+                            if (obj.mtnOverlap(sl,ch))
+                                fclose(obj.fOver{sl,ch});
+                            end
                         end
-                    end
-                else
-                    if (obj.params.mtnOverlap)
-                        fclose(obj.fOver);
                     end
                 end
             end
@@ -318,12 +362,14 @@ classdef OutputFileHandler < handle
             if (obj.params.proj)
                 toutProj = Tiff(obj.projFname,'w8');
                 setTag(toutProj,obj.tagstruct);
-                write(toutProj,int16(obj.projImages(:,:,1)));
-                if (obj.channels > 1)
-                    for ch=2:obj.channels
-                        toutProj.writeDirectory();
-                        setTag(toutProj,obj.tagstruct);
-                        write(toutProj,int16(obj.projImages(:,:,ch)));
+                write(toutProj,int16(obj.projImages(:,:,1,1)));
+                for sl=1:obj.slices
+                    for ch=1:obj.channels
+                        if ((sl>1)||(ch>1))
+                            toutProj.writeDirectory();
+                            setTag(toutProj,obj.tagstruct);
+                            write(toutProj,int16(obj.projImages(:,:,sl,ch)));
+                        end
                     end
                 end
                 close(toutProj);
@@ -331,8 +377,8 @@ classdef OutputFileHandler < handle
         end
 
         % set current image to process
-        function setImage(obj,image,channel)
-            obj.images(:,:,channel) = image;
+        function setImage(obj,image,slice,channel)
+            obj.images(:,:,slice,channel) = image;
         end
 
         % set current images to process
@@ -352,85 +398,85 @@ classdef OutputFileHandler < handle
                 fwrite(obj.fMtn,[obj.xDisp,obj.yDisp],'int16','b');
             end
 
-            if (obj.params.splitChannels)
-                for ch=1:obj.channels
-                    if (obj.params.mtnOverlap(ch))
-                        fwrite(obj.fOver{ch},obj.overlapMask{ch}((obj.params.dim(1)-obj.yDisp),(obj.params.dim(2)-obj.xDisp),:),'ubit1','b');
+            if (obj.checkOverlap)
+                for sl=1:obj.slices
+                    for ch=1:obj.channels
+                        if (obj.mtnOverlap(sl,ch))
+                            fwrite(obj.fOver{sl,ch},obj.overlapMask{sl,ch}((obj.params.dim(1)-obj.yDisp),(obj.params.dim(2)-obj.xDisp),:),'ubit1','b');
+                        end
                     end
-                end
-            else
-                if (obj.params.mtnOverlap)
-                    fwrite(obj.fOver,obj.overlapMask((obj.params.dim(1)-obj.yDisp),(obj.params.dim(2)-obj.xDisp),:),'ubit1','b');
                 end
             end
 
-            for ch = 1:obj.channels
-                obj.image = obj.images(:,:,ch);
-
-                if (obj.getBG)
-                    bg = double(obj.image(~obj.fullMask(:,:,ch)));
-                    bgMean = mean(bg);
-                    if (obj.params.bgTrace)
-                        fwrite(obj.fBgm{ch},[bgMean,std(bg)],'double','b');
-                    end
-                    bgMean = int16(bgMean);
-                    if (obj.sbtrBgFirst)
-                        obj.image = obj.image - bgMean;
-                    end
-                end
+            for sl=1:obj.slices
+                for ch = 1:obj.channels
+                    obj.image = obj.images(:,:,sl,ch);
     
-                if (obj.params.aesTrace)
-                    if (obj.params.zeroTrace && ~obj.sbtrBgFirst)
-                        for ii = 1:obj.numAes(ch)
-                            fwrite(obj.fAes{ch}{ii},(obj.image(obj.aesMasks{ch}(:,:,ii))-bgMean),'int16','b');
+                    if (obj.getBG)
+                        bg = double(obj.image(~obj.fullMask(:,:,sl,ch)));
+                        bgMean = mean(bg);
+                        if (obj.params.bgTrace)
+                            fwrite(obj.fBgm{sl,ch},[bgMean,std(bg)],'double','b');
                         end
-                    else
-                        for ii = 1:obj.numAes(ch)
-                            fwrite(obj.fAes{ch}{ii},obj.image(obj.aesMasks{ch}(:,:,ii)),'int16','b');
+                        bgMean = int16(bgMean);
+                        if (obj.sbtrBgFirst)
+                            obj.image = obj.image - bgMean;
                         end
-                    end
-                end
-    
-                if (obj.params.compress)
-                    obj.image = obj.image .* obj.compMask(:,:,ch);
-                    if (obj.params.zeroVid && ~obj.sbtrBgFirst)
-                        obj.image = obj.image + (1 - obj.compMask(:,:,ch)) * bgMean;
-                    end
-                end
-    
-                if (obj.params.mtn)
-                    obj.image = circshift(obj.image,[obj.yDisp,obj.xDisp]);
-                end
-    
-                if (obj.params.smplTrace) 
-                    if (obj.params.zeroTrace && ~obj.sbtrBgFirst)
-                        for ii = 1:obj.numSmpl(ch)
-                            fwrite(obj.fSmpl{ch}{ii},(obj.image(obj.smplMasks{ch}(:,:,ii))-bgMean),'int16','b');
-                        end
-                    else
-                        for ii = 1:obj.numSmpl(ch)
-                            fwrite(obj.fSmpl{ch}{ii},obj.image(obj.smplMasks{ch}(:,:,ii)),'int16','b');
-                        end
-                    end
-                end
-    
-                if (obj.params.saveVid)
-                    if (obj.params.zeroVid && ~obj.sbtrBgFirst)
-                        obj.image = obj.image - bgMean;
                     end
         
-                    if (obj.firstFrame)
-                        obj.firstFrame = false;
-                    else
-                        obj.tout.writeDirectory();
+                    if (obj.params.aesTrace)
+                        if (obj.params.zeroTrace && ~obj.sbtrBgFirst)
+                            for ii = 1:obj.numAes(sl,ch)
+                                fwrite(obj.fAes{sl,ch}{ii},(obj.image(obj.aesMasks{sl,ch}(:,:,ii))-bgMean),'int16','b');
+                            end
+                        else
+                            for ii = 1:obj.numAes(sl,ch)
+                                fwrite(obj.fAes{sl,ch}{ii},obj.image(obj.aesMasks{sl,ch}(:,:,ii)),'int16','b');
+                            end
+                        end
                     end
-                            
-                    setTag(obj.tout,obj.tagstruct);
-                    write(obj.tout,obj.image);
-                end
-
-                if (obj.params.proj)
-                    obj.projImages(:,:,ch) = obj.projImages(:,:,ch) + double(obj.image)/obj.numFrames;
+        
+                    if (obj.params.compress)
+                        obj.image = obj.image .* obj.compMask(:,:,sl,ch);
+                        if (obj.params.zeroVid && ~obj.sbtrBgFirst)
+                            obj.image = obj.image + (1 - obj.compMask(:,:,sl,ch)) * bgMean;
+                        end
+                    end
+        
+                    if (obj.params.mtn)
+                        obj.image = circshift(obj.image,[obj.yDisp,obj.xDisp]);
+                    end
+        
+                    if (obj.params.smplTrace) 
+                        if (obj.params.zeroTrace && ~obj.sbtrBgFirst)
+                            for ii = 1:obj.numSmpl(sl,ch)
+                                fwrite(obj.fSmpl{sl,ch}{ii},(obj.image(obj.smplMasks{sl,ch}(:,:,ii))-bgMean),'int16','b');
+                            end
+                        else
+                            for ii = 1:obj.numSmpl(sl,ch)
+                                fwrite(obj.fSmpl{sl,ch}{ii},obj.image(obj.smplMasks{sl,ch}(:,:,ii)),'int16','b');
+                            end
+                        end
+                    end
+        
+                    if (obj.params.saveVid)
+                        if (obj.params.zeroVid && ~obj.sbtrBgFirst)
+                            obj.image = obj.image - bgMean;
+                        end
+            
+                        if (obj.firstFrame)
+                            obj.firstFrame = false;
+                        else
+                            obj.tout.writeDirectory();
+                        end
+                                
+                        setTag(obj.tout,obj.tagstruct);
+                        write(obj.tout,obj.image);
+                    end
+    
+                    if (obj.params.proj)
+                        obj.projImages(:,:,sl,ch) = obj.projImages(:,:,sl,ch) + double(obj.image)/obj.numFrames;
+                    end
                 end
             end
         end

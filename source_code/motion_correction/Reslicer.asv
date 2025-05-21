@@ -1,0 +1,123 @@
+classdef Reslicer < handle
+    properties (GetAccess = public, SetAccess = private)
+        map
+        imDim
+        invMap
+
+        channels1
+        channels2
+        slices1
+        slices2
+        
+        mappedIms
+        idMap
+        mapActive
+    end
+
+    methods
+        function obj = Reslicer(imDim,slices,channels)
+            obj.imDim = imDim;
+            obj.idMap = zeros(slices,channels,2);
+            obj.channels1 = channels;
+            obj.slices1 = slices;
+            for sl = 1:slices
+                for ch = 1:channels
+                    obj.idMap(sl,ch,:) = [sl,ch];
+                end
+            end
+            obj.resetMap;
+        end
+
+        function newArr = mapCells(obj,oldArr)
+            newArr = cell(obj.slices2,obj.channels2);
+            for sl=obj.slices1
+                for ch=obj.channels1
+                    newArr{obj.map(sl,ch,1),obj.map(sl,ch,2)} = oldArr{sl,ch};
+                end
+            end
+        end
+
+        function newIms = mapImages(obj,ims)
+            newIms = obj.mappedIms;
+            for sl=obj.slices1
+                for ch=obj.channels1
+                    newIms(:,:,obj.map(sl,ch,1),obj.map(sl,ch,2)) = ims(:,:,sl,ch);
+                end
+            end
+        end
+
+        function B = mapMatrix(obj,A)
+            B = zeros(obj.slices2,obj.channels2);
+            for sl=1:obj.slices1
+                for ch=1:obj.channels2
+                    B(obj.map(sl,ch,1),obj.map(sl,ch,2)) = A(sl,ch);
+                end
+            end
+        end
+
+        function coord = getCoord(obj,sl,ch)
+            coord = obj.map(sl,ch,:);
+        end
+
+        function coord = getInvCoord(obj,sl,ch)
+            coord = obj.invMap(sl,ch,:);
+        end
+
+        function setMap(obj,map)
+            if ((size(map,1)~=obj.slices1)||(size(map,2)~=obj.channels1))
+                return;
+            end
+
+            obj.map = map;
+            obj.slices2 = max(obj.map(:,:,1),[],'all');
+            obj.channels2 = max(obj.map(:,:,2),[],'all');
+            obj.invMap = zeros(obj.slices2,obj.channels2,2);
+            for sl2=1:obj.slices2
+                for ch2=1:obj.channels2
+                    for sl1=1:obj.slices1
+                        for ch1=1:obj.channels1
+                            if ((obj.map(sl1,ch1,1) == sl2) && (obj.map(sl1,ch1,2) == ch2))
+                                obj.invMap(sl2,ch2,:) = [sl1,ch1];
+                            end
+                        end
+                    end
+                end
+            end
+            obj.mappedIms = int16(zeros(obj.imDim(1),obj.imDim(2),obj.slices2,obj.channels2));
+            obj.mapActive = true;
+        end
+        
+        function setInverseMap(obj,invMap)
+            if ((max(obj.map(:,:,1),[],'all')~=obj.slices1)||(max(obj.map(:,:,2),[],'all')~=obj.channels1))
+                return;
+            end
+
+            obj.slices2 = size(invMap,1);
+            obj.channels2 = size(invMap,2);
+            obj.invMap = invMap;
+            obj.map = zeros(obj.slices1,obj.channels1,2);
+            for sl1 = 1:obj.slices1
+                for ch1 = 1:obj.channels1
+                    for sl2 = 1:obj.slices2
+                        for ch2 = 1:obj.channels2
+                            if ((invMap(sl2,ch2,1)==sl1)&&(invMap(sl2,ch2,2)==ch1))
+                                obj.map(sl1,ch1,:) = [sl2,ch2];
+                            end
+                        end
+                    end
+                end
+            end
+            obj.mappedIms = int16(zeros(obj.imDim(1),obj.imDim(2),obj.slices2,obj.channels2));
+            obj.mapActive = true;
+        end
+
+        function resetMap(obj)
+            obj.map = obj.idMap;
+            obj.invMap = obj.idMap;
+            obj.slices2 = obj.slices1;
+            obj.channels2 = obj.channels1;
+            obj.mappedIms = int16(zeros(obj.imDim(1),obj.imDim(2),obj.slices2,obj.channels2));
+            obj.mapActive = false;
+        end
+    end
+end

@@ -246,7 +246,11 @@ classdef MaskGenerator < handle
         end
 
         function buildBorder(obj)
-            obj.fullMask = conv2(obj.baseMask,obj.kernel,'same');
+            if (obj.border>0)
+                obj.fullMask = conv2(obj.baseMask,obj.kernel,'same');
+            else
+                obj.fullMask = obj.baseMask;
+            end
             obj.fullMask = obj.fullMask > 0;
             obj.excludedMask = 0*obj.excludedMask;
         end
@@ -298,7 +302,6 @@ classdef MaskGenerator < handle
                 obj.blobs = obj.blobs(:,:,~obj.roiInd);
                 obj.sizes = obj.sizes(~obj.roiInd);
                 obj.quickFilter();
-                obj.buildBorder();
                 obj.deselectROI();
             end
         end
@@ -308,7 +311,7 @@ classdef MaskGenerator < handle
             obj.selectedMask = obj.selectedMask*0;
         end
 
-        function printBlobs(obj,basename,path,ind)
+        function printBlobs(obj,basename,path,ind,xBevel,yBevel)
             if (isempty(obj.sizes))
                 return;
             end
@@ -324,7 +327,24 @@ classdef MaskGenerator < handle
 
             for ii=tempInd:length(obj.sizes)
                 ff = fullfile(path,strcat(basename,'_',num2str(ind+ii-tempInd+1),'.tif'));
-                imwrite((obj.blobs(:,:,ii)+0),ff, 'Compression','none');
+                tempBlob = obj.blobs(:,:,ii);
+                if (obj.border > 0)
+                    tempBlob = (conv2(tempBlob,obj.kernel,'same')>0);
+                end
+
+                if (xBevel > 0)
+                    tempBlob(:,1:xBevel) = zeros(size(tempBlob,1),xBevel);
+                elseif (xBevel < 0)
+                    tempBlob(:,(end+xBevel+1):end) = zeros(size(tempBlob,1),-xBevel);
+                end
+
+                if (yBevel > 0)
+                    tempBlob(1:yBevel,:) = zeros(yBevel,size(tempBlob,2));
+                elseif (yBevel < 0)
+                    tempBlob((end+yBevel+1):end,:) = zeros(-yBevel,size(tempBlob,2));
+                end
+
+                imwrite((tempBlob+0),ff, 'Compression','none');
             end
         end
 
@@ -356,6 +376,7 @@ classdef MaskGenerator < handle
         function load(obj,maskParams)
             obj.setBorder(maskParams.border);
             obj.baseMask = maskParams.baseMask;
+            obj.excludedMask = 0*obj.excludedMask;
             obj.threshold = maskParams.threshold;
             obj.minFeature = maskParams.minFeature;
             obj.maxHole = maskParams.maxHole;

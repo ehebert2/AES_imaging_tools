@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="3566537432" file="C:\Users\ScanImage\Desktop\AES_image_tools_v8\motion_correction\Motion Correction App.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v8\motion_correction" name="Motion Correction App" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="1227995832" file="C:\Users\ScanImage\Desktop\AES_image_tools_v10\motion_correction\Motion Correction App.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v10\motion_correction" name="Motion Correction App" target="target.mlapps" target-name="Package App">
     <param.appname>Motion Correction App</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,8 +12,8 @@
     </param.icons>
     <param.summary>Process videos created using AES.</param.summary>
     <param.description>Handles motion correction and trace extraction for videos made using AES.</param.description>
-    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp7c6e9536_c098_47fa_98e2_f4628d91bf85.png</param.screenshot>
-    <param.version>3.5</param.version>
+    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp36f4de03_be91_4a81_8250_728e373e3e6c.png</param.screenshot>
+    <param.version>4.0</param.version>
     <param.products.name />
     <param.products.id />
     <param.products.version />
@@ -46,6 +46,7 @@
       <file>${PROJECT_ROOT}\+helper_apps\playback_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\preview_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\preview_params_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\reslicer_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\roi_adjust_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\stack_select_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\AESFile.m</file>
@@ -53,6 +54,7 @@
       <file>${PROJECT_ROOT}\MaskType.m</file>
       <file>${PROJECT_ROOT}\MotionTracker.m</file>
       <file>${PROJECT_ROOT}\OutputFileHandler.m</file>
+      <file>${PROJECT_ROOT}\Reslicer.m</file>
       <file>${PROJECT_ROOT}\StackTracker.m</file>
       <file>${PROJECT_ROOT}\validateParams.m</file>
     </fileset.depfun>
@@ -61,7 +63,7 @@
     </fileset.resources>
     <fileset.package />
     <build-deliverables>
-      <file location="C:\Users\ScanImage\Desktop\AES_image_tools_v8" name="motion_correction" optional="false">C:\Users\ScanImage\Desktop\AES_image_tools_v8\motion_correction</file>
+      <file location="C:\Users\ScanImage\Desktop\AES_image_tools_v10" name="motion_correction" optional="false">C:\Users\ScanImage\Desktop\AES_image_tools_v10\motion_correction</file>
     </build-deliverables>
     <workflow />
     <matlab>

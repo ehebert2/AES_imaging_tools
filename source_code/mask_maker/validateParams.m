@@ -20,14 +20,29 @@ function params = validateParams(params)
         params.splitChannels = false;
     end
 
-    if (~isfield(params,'volume'))
-        params.volume = false;
-    end
-
     if (~isfield(params,'slices'))
         params.slices = 1;
     elseif (params.slices < 1)
         params.slices = 1;
+    end
+
+    if (~isfield(params,'reslicer'))
+        params.reslicer = [];
+        slices2 = params.slices;
+        channels2 = params.channels;
+        params.reslice = false;
+    elseif (isempty(params.reslicer))
+        slices2 = params.slices;
+        channels2 = params.channels;
+        params.reslice = false;
+    else
+        slices2 = params.reslicer.slicesOut;
+        channels2 = params.reslicer.channelsOut;
+        params.reslice = params.reslicer.mapActive;
+    end
+
+    if (~isfield(params,'volume'))
+        params.volume = params.slices>1;
     end
 
     if (~isfield(params,'expMask'))
@@ -39,54 +54,58 @@ function params = validateParams(params)
     end
 
     if (~isfield(params,'roiAes'))
-        params.roiAes = cell(params.channels);
+        params.roiAes = cell(slices2,channels2);
         if (isempty(params.expMask))
             params.compress = false;
         end
-        params.aesNames = cell(params.channels);
+        params.aesNames = cell(slices2,channels2);
     elseif (~isfield(params,'aesNames'))
-        params.aesNames = cell(params.channels);
+        params.aesNames = cell(slices2,channels2);
     end
 
     if (~isfield(params,'roiSmpl'))
-        params.roiSmpl = cell(params.channels);
-        params.smplNames = cell(params.channels);
+        params.roiSmpl = cell(slices2,channels2);
+        params.smplNames = cell(slices2,channels2);
     elseif (~isfield(params,'smplNames'))
-        params.smplNames = cell(params.channels);
+        params.smplNames = cell(slices2,channels2);
     end
 
     if (~params.splitChannels)
-        if (length(params.roiAes)~=params.channels)
-            temp = params.roiAes{1};
-            params.roiAes = cell(params.channels,1);
-            for ch=1:params.channels
-                params.roiAes{ch} = temp;
+        if (size(params.roiAes,2)~=channels2)
+            temp = params.roiAes(:,1);
+            params.roiAes = cell(slices2,channels2);
+            for ch=1:channels2
+                params.roiAes(:,ch) = temp;
             end
         end
 
-        if (length(params.roiSmpl)~=params.channels)
-            temp = params.roiSmpl{1};
-            params.roiSmpl = cell(params.channels,1);
-            for ch=1:params.channels
-                params.roiSmpl{ch} = temp;
+        if (size(params.roiSmpl,2)~=channels2)
+            temp = params.roiSmpl(:,1);
+            params.roiSmpl = cell(slices2,channels2);
+            for ch=1:channels2
+                params.roiSmpl(:,ch) = temp;
             end
         end
     end
 
     if ~isfield(params,'numRoiAes')
-        params.numRoiAes = zeros(params.channels,1);
-        for ch=1:params.channels
-            if (~isempty(params.roiAes{ch}))
-                params.numRoiAes(ch) = size(params.roiAes{ch},3);
+        params.numRoiAes = zeros(slices2,channels2);
+        for sl=1:slices2
+            for ch=1:channels2
+                if (~isempty(params.roiAes{sl,ch}))
+                    params.numRoiAes(sl,ch) = size(params.roiAes{sl,ch},3);
+                end
             end
         end
     end
 
     if ~isfield(params,'numRoiSmpl')
-        params.numRoiSmpl = zeros(params.channels,1);
-        for ch=1:params.channels
-            if (~isempty(params.roiSmpl{ch}))
-                params.numRoiSmpl(ch) = size(params.roiSmpl{ch},3);
+        params.numRoiSmpl = zeros(slices2,channels2);
+        for sl=1:slices2
+            for ch=1:channels2
+                if (~isempty(params.roiSmpl{sl,ch}))
+                    params.numRoiSmpl(sl,ch) = size(params.roiSmpl{sl,ch},3);
+                end
             end
         end
     end
@@ -95,8 +114,8 @@ function params = validateParams(params)
         params.saveMasks = false;
     end
 
-    if (isempty(params.roiAes{1}))
-        if (isempty(params.roiSmpl{1}))
+    if (isempty(params.roiAes{1,1}))
+        if (isempty(params.roiSmpl{1,1}))
             if (isempty(params.expMask))
                 if (~isfield(params,'dim'))
                     params.dim = [];
@@ -106,10 +125,10 @@ function params = validateParams(params)
                 params.dim = [size(params.expMask,1),size(params.expMask,2)];
             end
         else
-            params.dim = [size(params.roiSmpl{1},1),size(params.roiSmpl{1},2)];
+            params.dim = [size(params.roiSmpl{1,1},1),size(params.roiSmpl{1,1},2)];
         end
     else
-        params.dim = [size(params.roiAes{1},1),size(params.roiAes{1},2)];
+        params.dim = [size(params.roiAes{1,1},1),size(params.roiAes{1,1},2)];
     end
 
     if (~isfield(params,'saveVid'))
@@ -151,11 +170,7 @@ function params = validateParams(params)
         params.passes = 1;
         params.intlPasses = 1;
         params.fft = false;
-        if (params.splitChannels)
-            params.mtnOverlap = (zeros(params.channels,1)>0);
-        else
-            params.mtnOverlap = false;
-        end
+        params.mtnOverlap = false;
     else
         if (~isfield(params,'mtnIntlWndw'))
             params.mtnIntlWndw = 1;
@@ -184,43 +199,28 @@ function params = validateParams(params)
         if (~isfield(params,'mtnOverlap'))
             params.mtnOverlap = false;
         end
-
-        if (params.splitChannels)
-            if (length(params.mtnOverlap)==1)
-                if (params.mtnOverlap)
-                    params.mtnOverlap = (zeros(params.channels,1)>0);
-                    for ch=1:params.channels
-                        if ((params.numRoiAes(ch)>0)&&(params.numRoiSmpl(ch)>0))
-                            params.mtnOverlap(ch)=true;
-                        end
-                    end
-                else
-                    params.mtnOverlap = (zeros(params.channels,1)>0);
-                end
-            end
-        else
-            if (length(params.mtnOverlap)>1)
-                params.mtnOverlap = params.mtnOverlap(1);
-            end
-
-            if ((params.numRoiAes(1)==0)||(params.numRoiSmpl(1)==0))
-                params.mtnOverlap = false;
-            end
-        end
     end    
 
     if (~isfield(params,'bgTrace'))
         params.bgTrace = false;
     end
 
-    if (~isfield(params,'bidirectional'))
-        params.bidirectional = false;
+    if (~isfield(params,'yBidirectional'))
+        params.yBidirectional = false;
         params.bidiShift = 0;
     else
         if (~isfield(params,'bidiShift'))
             params.bidiShift = 0;
         end
     end
+
+    if (~isfield(params,'zBidirectional'))
+        params.zBidirectional = false;
+    elseif (~params.volume)
+        params.zBidirectional = false;
+    end
+
+    params.bidirectional = params.zBidirectional || params.yBidirectional;
 
     if (~isfield(params,'multiVid'))
         params.multiVid = false;
