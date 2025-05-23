@@ -26,20 +26,27 @@ function params = validateParams(params)
         params.slices = 1;
     end
 
-    if (~isfield(params,'reslicer'))
-        params.reslicer = [];
-        slices2 = params.slices;
-        channels2 = params.channels;
+    if (~isfield(params,'reslice'))
         params.reslice = false;
-    elseif (isempty(params.reslicer))
-        slices2 = params.slices;
-        channels2 = params.channels;
-        params.reslice = false;
-    else
-        slices2 = params.reslicer.slicesOut;
-        channels2 = params.reslicer.channelsOut;
-        params.reslice = params.reslicer.mapActive;
+    elseif (params.reslice)
+        if (~isfield(params,'resliceMap'))
+            params.reslice = false;
+        else
+            params.slicesOut = max(params.resliceMap(:,:,1),[],'all');
+            params.channelsOut = max(params.resliceMap(:,:,2),[],'all');
+            if ((params.slicesOut*params.channelsOut)~=(params.slices*params.channels))
+                params.reslice = false;
+            end
+        end
     end
+
+    if (~params.reslice)
+        params.slicesOut = params.slices;
+        params.channelsOut = params.channels;
+        params.resliceMap = [];
+    end
+    slices2 = params.slicesOut;
+    channels2 = params.channelsOut;
 
     if (~isfield(params,'volume'))
         params.volume = params.slices>1;

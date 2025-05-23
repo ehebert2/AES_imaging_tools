@@ -13,7 +13,7 @@ classdef MotionTracker < handle
         slicesIn
         slicesOut
         reslice
-        reslicer
+        resliceMap
 
         tempBlur
         spaceBlur
@@ -99,11 +99,11 @@ classdef MotionTracker < handle
             obj.isVolume = obj.params.volume;
             obj.reslice = obj.params.reslice;
             if (obj.reslice)
-                obj.slicesIn = obj.params.reslicer.slicesIn;
-                obj.slicesOut = obj.params.reslicer.slicesOut;
-                obj.channelsIn = obj.params.reslicer.channelsIn;
-                obj.channelsOut = obj.params.reslicer.channelsOut;
-                obj.reslicer = obj.params.reslicer;
+                obj.slicesIn = obj.params.slices;
+                obj.slicesOut = obj.params.slicesOut;
+                obj.channelsIn = obj.params.channels;
+                obj.channelsOut = obj.params.channelsOut;
+                obj.resliceMap = obj.params.resliceMap;
             else
                 obj.slicesIn = obj.params.slices;
                 obj.slicesOut = obj.params.slices;
@@ -399,9 +399,9 @@ classdef MotionTracker < handle
                             end
 
                             if (obj.reslice)
-                                coord = obj.reslicer.getCoord(obj.tempSl,obj.tempCh);
-                                obj.tempSl = coord(1);
-                                obj.tempCh = coord(2);
+                                temp = obj.resliceMap(obj.tempSl,obj.tempCh,1);
+                                obj.tempCh = obj.resliceMap(obj.tempSl,obj.tempCh,2);
+                                obj.tempSl = temp;
                             end
 
                             obj.buffer{obj.tempSl,obj.tempCh} = circshift(obj.buffer{obj.tempSl,obj.tempCh},1,3);

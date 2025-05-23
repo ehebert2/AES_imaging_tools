@@ -119,5 +119,12 @@ classdef Reslicer < handle
             obj.mappedIms = int16(zeros(obj.imDim(1),obj.imDim(2),obj.slicesOut,obj.channelsOut));
             obj.mapActive = false;
         end
+
+        function params = attachParams(obj, params)
+            params.reslice = obj.mapActive;
+            params.resliceMap = obj.map;
+            params.slicesOut = obj.slicesOut;
+            params.channelsOut = obj.channelsOut;
+        end
     end
 end

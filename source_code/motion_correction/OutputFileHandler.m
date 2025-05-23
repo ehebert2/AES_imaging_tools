@@ -52,8 +52,8 @@ classdef OutputFileHandler < handle
             obj.params = validateParams(params);
             obj.reslice = obj.params.reslice;
             if (obj.reslice)
-                obj.channels = params.reslicer.channelsOut;
-                obj.slices = params.reslicer.slicesOut;
+                obj.channels = params.channelsOut;
+                obj.slices = params.slicesOut;
             else
                 obj.channels = obj.params.channels;
                 obj.slices = params.slices;

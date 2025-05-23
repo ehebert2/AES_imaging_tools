@@ -25,7 +25,7 @@ classdef StackTracker < handle
         images
         firstFrame
 
-        reslicer
+        resliceMap
         reslice
         tempSl
         tempCh
@@ -53,11 +53,11 @@ classdef StackTracker < handle
             obj.slicesIn = params.slices;
             obj.isVolume = params.volume;
             obj.resetLimit = round(5000*(1+(1-obj.isVolume)*obj.bidirectional)/(obj.channelsIn*obj.slicesIn));
-            obj.reslicer = params.reslicer;
             obj.reslice = params.reslice;
             if (obj.reslice)
-                obj.slicesOut = obj.reslicer.slicesOut;
-                obj.channelsOut = obj.reslicer.channelsOut;
+                obj.slicesOut = params.slicesOut;
+                obj.channelsOut = params.channelsOut;
+                obj.resliceMap = params.resliceMap;
             else
                 obj.slicesOut = obj.slicesIn;
                 obj.channelsOut = obj.channelsIn;
@@ -135,9 +135,9 @@ classdef StackTracker < handle
                         end
 
                         if (obj.reslice)
-                            coord = obj.reslicer.getCoord(obj.tempSl,obj.tempCh);
-                            obj.tempSl = coord(1);
-                            obj.tempCh = coord(2);
+                            temp = obj.resliceMap(obj.tempSl,obj.tempCh,1);
+                            obj.tempCh = obj.resliceMap(obj.tempSl,obj.tempCh,2);
+                            obj.tempSl = temp;
                         end
 
                         if (obj.yBidirectional)

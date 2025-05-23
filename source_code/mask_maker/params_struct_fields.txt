@@ -1,5 +1,6 @@
 This is just to help me remember what fields the params struct contains.
 
+	% Variables describing input video structure
 	channels: 	how many channels
 	mainChannel: 	channel referenced for motion correction
 	splitChannels:	different masks for each channel
@@ -9,14 +10,15 @@ This is just to help me remember what fields the params struct contains.
 	bidiShift: 	shift on upper half of image to compensate for time delay in bidirectional scanning
 	volume:		Is the stack a 3D volume
 	slices:		For volumes. Number of slices per volume.
+	dim:		dimension of images (optional if enough other information is present)
+	
+	% Variables describing what is saved to file after processing
 	multiVid: 	whether or not multiple videos are to be processed
 	splitFolders: 	whether or not to split the output into folders for each video
-	mtn: 		whether or not to do motion correction
-	mtnIntlWndw: 	number of frames used to form template for motion correction
-	mtnWndw: 	temporal gaussian averaged window for motion correction
-	compress: 	whether or not to set pixels outside imaging roi's to 0 and compress output video
+	proj:		save projection of each channel
 	saveMasks: 	whether or not to save masks used for data analysis
 	saveVid:	whether or not to save the output video
+	compress: 	whether or not to set pixels outside imaging roi's to 0 and compress output video
 	zeroVid: 	whether or not to subtract video by background (value outside of laser exposure regions)
 	bgTrace: 	save average and stdev of pixels outside laser exposure regions for each frame
 	aesTrace: 	save pixel values inside each AES ROI
@@ -24,10 +26,17 @@ This is just to help me remember what fields the params struct contains.
 	zeroTrace:	subtrace background mean from sample and aes traces before saving.
 	mtnTrace: 	save displacement in pixel units of rigid motion correction for each frame
 	mtnOverlap: 	save boolean of each sample ROI for each frame determining if the sample ROI lies within the AES ROI region after motion correction.
+	
+	% Variables describing motion correction (if using)
+	mtn: 		whether or not to do motion correction
+	mtnIntlWndw: 	number of frames used to form template for motion correction
+	mtnWndw: 	temporal gaussian averaged window for motion correction
 	sptlWndw: 	spatial blur (1/e^2 radius) applied to images for motion registration (only used during motion correction, not applied to any saved video)
 	passes: 	number of motion correction passes for the whole video
 	intlPasses:	number of motion correction passes for the template
 	fft: 		whether or not to use k-space for cross-correlation for motion detection
+
+	% Masks used to filter and process frames of video
 	roiAes: 	AES ROI masks
 	roiSmpl: 	Sample ROI masks
 	numRoiAes:	Number of AesRois
@@ -35,5 +44,9 @@ This is just to help me remember what fields the params struct contains.
 	expMask:	exposure mask
 	aesNames:	AES ROI names
 	smplNames:	Sample ROI names
-	proj:		save projection of each channel
-	dim:		dimension of images (optional if enough other information is present)
+	
+	% Variables used to reorder slices in video
+	reslice:	if volume slices need to be rearranged for output
+	resliceMap:	3d matrix [input slice][input channel][output slice, output channel] mapping slice order read in to write out
+	slicesOut:	number of slices out
+	channelsOut:	number of channels out

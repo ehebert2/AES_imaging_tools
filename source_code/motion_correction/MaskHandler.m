@@ -401,7 +401,7 @@ classdef MaskHandler < handle
         end
 
         % attach masks to params struct for processing files
-        function params = attachParams(obj,params)
+        function params = attachParams(obj,params,reslicer)
             for sl = 1:obj.slices
                 for ch = 1:obj.channels
                     obj.roiAes{sl,ch} = (obj.roiAes{sl,ch} > 0);
@@ -439,14 +439,14 @@ classdef MaskHandler < handle
                 obj.setChannel(tempSl,1);
             end
             
-            if (~isempty(params.reslicer) && params.reslicer.mapActive)
-                params.roiAes = params.reslicer.mapCells(obj.roiAes);
-                params.roiSmpl = params.reslicer.mapCells(obj.roiSmpl);
-                params.aesNames = params.reslicer.mapCells(obj.roiAesNames);
-                params.smplNames = params.reslicer.mapCells(obj.roiSmplNames);
-                params.expMask = (params.reslicer.mapImages(fullmask)>0);
-                params.numRoiAes = params.reslicer.mapMatrix(obj.numRoiAes);
-                params.numRoiSmpl = params.reslicer.mapMatrix(obj.numRoiSmpl);
+            if (params.reslice && (~isempty(reslicer)))
+                params.roiAes = reslicer.mapCells(obj.roiAes);
+                params.roiSmpl = reslicer.mapCells(obj.roiSmpl);
+                params.aesNames = reslicer.mapCells(obj.roiAesNames);
+                params.smplNames = reslicer.mapCells(obj.roiSmplNames);
+                params.expMask = (reslicer.mapImages(fullmask)>0);
+                params.numRoiAes = reslicer.mapMatrix(obj.numRoiAes);
+                params.numRoiSmpl = reslicer.mapMatrix(obj.numRoiSmpl);
             else
                 params.roiAes = obj.roiAes;
                 params.roiSmpl = obj.roiSmpl;
