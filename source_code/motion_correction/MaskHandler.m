@@ -456,6 +456,26 @@ classdef MaskHandler < handle
                 params.numRoiAes = obj.numRoiAes;
                 params.numRoiSmpl = obj.numRoiSmpl;
             end
+            
+            if (params.bidirectional)
+                for sl=size(params.roiAes,1)
+                    for ch=size(params.roiAes,2)
+                        if (~isempty(params.roiAes{sl,ch}))
+                            if (params.bidiShift > 0)
+                                params.roiAes{sl,ch}(1:params.bidiShift,:,:) = zeros(params.bidiShift,size(params.roiAes{sl,ch},2),size(params.roiAes{sl,ch},3))>0;
+                            elseif (params.bidiShift < 0)
+                                params.roiAes{sl,ch}((end-params.bidiShift+1):end,:,:) = zeros(params.bidiShift,size(params.roiAes{sl,ch},2),size(params.roiAes{sl,ch},3))>0;
+                            end
+                        end
+                    end
+                end
+
+                if (params.bidiShift>0)
+                    params.expMask(1:params.bidiShift,:,:,:) = ones(params.bidiShift,size(params.expMask,2),size(params.expMask,3),size(params.expMask,4))>0;
+                elseif (params.bidiShift < 0)
+                    params.expMask((end-params.bidiShift+1):end,:,:,:) = ones(params.bidiShift,size(params.expMask,2),size(params.expMask,3),size(params.expMask,4))>0;
+                end
+            end
             params.splitChannels = obj.splitCh;
             params.dim = obj.dim;
         end
@@ -604,8 +624,16 @@ classdef MaskHandler < handle
             end
             smplPath = fullfile(maskPath,'sample');
 
+            [status,msg] = mkdir(maskPath,'exposure');
+            if (~status)
+                return;
+            end
+            expPath = fullfile(maskPath,'exposure');
+
             tempSlices = size(params.roiAes,1);
             tempChannels = size(params.roiAes,2)*params.splitChannels + (1-params.splitChannels);
+            multiSlice = tempSlices > 1;
+            multiChannel = tempChannels > 1;
             for ch=1:tempChannels
                 if (params.splitChannels)
                     chFolder = strcat('channel_',num2str(ch));
@@ -655,6 +683,17 @@ classdef MaskHandler < handle
                             imwrite((squeeze(params.roiSmpl{sl,ch}(:,:,ii))+0),fullfile(smplSlPath,strcat(params.smplNames{sl,ch}{ii},'.tif')),'Compression','none');
                         end
                     end
+
+                    expName = 'exp_mask';
+                    if (multiChannel)
+                        expName = strcat(expName,'_ch',num2str(ch));
+                    end 
+
+                    if (multiSlice)
+                        expName = strcat(expName,'_sl',num2str(sl));
+                    end
+                    expName = strcat(expName,'.tif');
+                    imwrite(((squeeze(params.expMask(:,:,sl,ch))>0)+0),fullfile(expPath,expName),'Compression','none');
                 end
             end
             msg = [];

@@ -1,32 +1,24 @@
 classdef MaskListenerHandler < handle
     properties (SetAccess = private, GetAccess = private)
-        circROIs
-        rectROIs
-        elpsROIs
-        lineROIs
-        ringROIs
-        plgnROIs
+        rois
+        roiMasks
         lineWidths
         ringWidths
+        roiTypes
         xMap
         yMap
         
         channels
-        channel
         slices
-        slice
         splitChannel
-        isVolume
-        bidirectional
 
         imageAxes
         callingApp
         imageDim
-        roiMasks
+        compMasks
         roiMask
-
         currentROI
-        currentROIInd
+        
 
         writeDim1
         writeDim2
@@ -45,19 +37,20 @@ classdef MaskListenerHandler < handle
     properties (GetAccess = public)
         ROIParamLabels
         currentROIType
+        currentROIInd
         numRois
+        channel
+        slice
     end
 
     properties (GetAccess = public, SetAccess = public)
-        bidiShift
-        htot
+        powerMod
     end
 
     methods
         function obj = MaskListenerHandler(callingApp,imageAxes,params)
             obj.callingApp = callingApp;
             obj.imageAxes = imageAxes;
-            obj.isVolume = params.volume;
             if (params.volume)
                 obj.slices = params.slices;
             else
@@ -69,39 +62,31 @@ classdef MaskListenerHandler < handle
             else
                 obj.channels = 1;
             end
-            obj.bidirectional = params.bidirectional;
             obj.imageDim = [0,0];
             obj.imageDim(1) = params.dim(1);
             obj.imageDim(2) = params.dim(2);
             obj.roiMask = zeros(obj.imageDim(1),obj.imageDim(2));
-            obj.roiMasks = zeros(obj.imageDim(1),obj.imageDim(2),obj.slices,obj.channels) > 0;
+            obj.compMasks = zeros(obj.imageDim(1),obj.imageDim(2),obj.slices,obj.channels) > 0;
+            obj.numRois = zeros(obj.slices,obj.channels);
             obj.xMap = 1:obj.imageDim(2);
             obj.xMap = repmat(obj.xMap,obj.imageDim(1),1);
             obj.yMap = 1:obj.imageDim(1);
             obj.yMap = repmat(obj.yMap',1,obj.imageDim(2));
             obj.channel = 1;
             obj.slice = 1;
-            obj.bidiShift = 0;
-            obj.htot = 0;
             
-            obj.circROIs = cell(obj.slices,obj.channels);
-            obj.rectROIs = cell(obj.slices,obj.channels);
-            obj.elpsROIs = cell(obj.slices,obj.channels);
-            obj.lineROIs = cell(obj.slices,obj.channels);
-            obj.ringROIs = cell(obj.slices,obj.channels);
-            obj.plgnROIs = cell(obj.slices,obj.channels);
+            obj.rois = cell(obj.slices,obj.channels);
+            obj.roiTypes = cell(obj.slices,obj.channels);
             obj.lineWidths = cell(obj.slices,obj.channels);
             obj.ringWidths = cell(obj.slices,obj.channels);
+            obj.roiMasks = cell(obj.slices,obj.channels);
             for sl=1:obj.slices
                 for ch=1:obj.channels
-                    obj.rectROIs{sl,ch} = cell(0);
-                    obj.circROIs{sl,ch} = cell(0);
-                    obj.elpsROIs{sl,ch} = cell(0);
-                    obj.ringROIs{sl,ch} = cell(0);
-                    obj.lineROIs{sl,ch} = cell(0);
-                    obj.plgnROIs{sl,ch} = cell(0);
+                    obj.rois{sl,ch} = cell(0);
+                    obj.roiTypes{sl,ch} = [];
                     obj.lineWidths{sl,ch} = [];
                     obj.ringWidths{sl,ch} = [];
+                    obj.roiMasks{sl,ch} = []>0;
                 end
             end
 
@@ -112,35 +97,16 @@ classdef MaskListenerHandler < handle
             obj.ROIParamLabels{obj.RING} = {'X center:', 'Y center:', 'Semi axis 1:', 'Semi axis 2:', 'Angle:', 'Thickness'};
             obj.ROIParamLabels{obj.LINE} = {'Thickness:','Points'};
             obj.ROIParamLabels{obj.PLGN} = {'Points:'};
+            obj.currentROIType = obj.NONE;
         end
 
         function delete(obj)
             for sl=1:obj.slices
                 for ch=1:obj.channels
-                    for ii=1:length(obj.rectROIs{sl,ch})
-                        delete(obj.rectROIs{sl,ch}{ii});
+                    for ii=1:length(obj.rois{sl,ch})
+                        delete(obj.rois{sl,ch}{ii});
                     end
-
-                    for ii=1:length(obj.circROIs{sl,ch})
-                        delete(obj.circROIs{sl,ch}{ii});
-                    end
-
-                    for ii=1:length(obj.elpsROIs{sl,ch})
-                        delete(obj.elpsROIs{sl,ch}{ii});
-                    end
-
-                    for ii=1:length(obj.ringROIs{sl,ch})
-                        delete(obj.ringROIs{sl,ch}{ii});
-                    end
-
-                    for ii=1:length(obj.lineROIs{sl,ch})
-                        delete(obj.lineROIs{sl,ch}{ii});
-                    end
-
-                    for ii=1:length(obj.plgnROIs{sl,ch})
-                        delete(obj.plgnROIs{sl,ch}{ii});
-                    end
-
+                    obj.roiTypes{sl,ch} = [];
                     obj.lineWidths{sl,ch} = [];
                     obj.ringWidths{sl,ch} = [];
                 end
@@ -154,100 +120,72 @@ classdef MaskListenerHandler < handle
                     if (isempty(tempROI.Center))
                         return;
                     end
-                    tempROI.DrawingArea = "unlimited";
                     tempROI.FaceAlpha = 0;
-                    obj.circROIs{obj.slice,obj.channel} = [obj.circROIs{obj.slice,obj.channel}, {tempROI}];
-                    addlistener(tempROI,'ROIClicked',@obj.circClck);
-                    addlistener(tempROI,'DeletingROI',@obj.circDlt);
-                    addlistener(tempROI,'ROIMoved',@obj.circMv);
+                    obj.roiMask = createMask(tempROI);
                 case(obj.RECT)
                     tempROI = drawrectangle(obj.imageAxes);
                     if (isempty(tempROI.Position))
                         return;
                     end
-                    tempROI.DrawingArea = "unlimited";
                     tempROI.FaceAlpha = 0;
-                    obj.rectROIs{obj.slice,obj.channel} = [obj.rectROIs{obj.slice,obj.channel}, {tempROI}];
-                    addlistener(tempROI,'ROIClicked',@obj.rectClck);
-                    addlistener(tempROI,'DeletingROI',@obj.rectDlt);
-                    addlistener(tempROI,'ROIMoved',@obj.rectMv);
+                    obj.roiMask = createMask(tempROI);
                 case(obj.ELPS)
                     tempROI = drawellipse(obj.imageAxes);
                     if (isempty(tempROI.Center))
                         return;
                     end
-                    tempROI.DrawingArea = "unlimited";
                     tempROI.FaceAlpha = 0;
-                    obj.elpsROIs{obj.slice,obj.channel} = [obj.elpsROIs{obj.slice,obj.channel}, {tempROI}];
-                    addlistener(tempROI,'ROIClicked',@obj.elpsClck);
-                    addlistener(tempROI,'DeletingROI',@obj.elpsDlt);
-                    addlistener(tempROI,'ROIMoved',@obj.elpsMv);
+                    obj.roiMask = createMask(tempROI);
                 case(obj.LINE)
                     tempROI = drawpolyline(obj.imageAxes);
                     if (isempty(tempROI.Position))
                         return;
                     end
-                    tempROI.DrawingArea = "unlimited";
-                    obj.lineROIs{obj.slice,obj.channel} = [obj.lineROIs{obj.slice,obj.channel}, {tempROI}];
-                    obj.lineWidths{obj.slice,obj.channel} = [obj.lineWidths{obj.slice,obj.channel},1];
-                    addlistener(tempROI,'ROIClicked',@obj.lineClck);
-                    addlistener(tempROI,'DeletingROI',@obj.lineDlt);
-                    addlistener(tempROI,'ROIMoved',@obj.lineMv);
-                    addlistener(tempROI,'VertexAdded',@obj.lineMv);
-                    addlistener(tempROI,'VertexDeleted',@obj.lineMv);
-                    obj.currentROIInd = length(obj.lineROIs{obj.slice,obj.channel});
+                    addlistener(tempROI,'VertexAdded',@obj.roiMv);
+                    addlistener(tempROI,'VertexDeleted',@obj.roiMv);
+                    obj.drawLine(tempROI,1);
                 case(obj.RING)
                     tempROI = drawellipse(obj.imageAxes);
                     if (isempty(tempROI.Center))
                         return;
                     end
-                    tempROI.DrawingArea = "unlimited";
                     tempROI.FaceAlpha = 0;
-                    obj.ringROIs{obj.slice,obj.channel} = [obj.ringROIs{obj.slice,obj.channel}, {tempROI}];
-                    obj.ringWidths{obj.slice,obj.channel} = [obj.ringWidths{obj.slice,obj.channel}, 1];
-                    addlistener(tempROI,'ROIClicked',@obj.ringClck);
-                    addlistener(tempROI,'DeletingROI',@obj.ringDlt);
-                    addlistener(tempROI,'ROIMoved',@obj.ringMv);
-                    obj.currentROIInd = length(obj.ringROIs{obj.slice,obj.channel});
+                    obj.drawRing(tempROI,1);
                 case(obj.PLGN)
                     tempROI = drawpolygon(obj.imageAxes);
                     if (isempty(tempROI.Position))
                         return;
                     end
-                    tempROI.DrawingArea = "unlimited";
                     tempROI.FaceAlpha = 0;
-                    obj.plgnROIs{obj.slice,obj.channel} = [obj.plgnROIs{obj.slice,obj.channel}, {tempROI}];
-                    addlistener(tempROI,'ROIClicked',@obj.plgnClck);
-                    addlistener(tempROI,'DeletingROI',@obj.plgnDlt);
-                    addlistener(tempROI,'ROIMoved',@obj.plgnMv);
-                    addlistener(tempROI,'VertexAdded',@obj.plgnMv);
-                    addlistener(tempROI,'VertexDeleted',@obj.plgnMv);
+                    addlistener(tempROI,'VertexAdded',@obj.roiMv);
+                    addlistener(tempROI,'VertexDeleted',@obj.roiMv);
+                    obj.roiMask = createMask(tempROI);
             end
+            addlistener(tempROI,'ROIClicked',@obj.roiClck);
+            addlistener(tempROI,'DeletingROI',@obj.roiDlt);
+            addlistener(tempROI,'ROIMoved',@obj.roiMv);
+            obj.rois{obj.slice,obj.channel} = [obj.rois{obj.slice,obj.channel}, {tempROI}];
+            obj.roiTypes{obj.slice,obj.channel} = [obj.roiTypes{obj.slice,obj.channel} roiType];
+            obj.lineWidths{obj.slice,obj.channel} = [obj.lineWidths{obj.slice,obj.channel},1];
+            obj.ringWidths{obj.slice,obj.channel} = [obj.ringWidths{obj.slice,obj.channel}, 1];
             tempROI.LineWidth = 1;
+            tempROI.DrawingArea = "unlimited";
             obj.currentROI = tempROI;
             obj.currentROIType = roiType;
+            obj.numRois(obj.slice,obj.channel) = obj.numRois(obj.slice,obj.channel) + 1;
+            obj.currentROIInd = obj.numRois(obj.slice,obj.channel);
+            obj.roiMasks{obj.slice,obj.channel} = cat(3,obj.roiMasks{obj.slice,obj.channel},(obj.roiMask>0));
+            
             obj.callingApp.setROILabels(obj.ROIParamLabels{obj.currentROIType},obj.currentROIType);
             obj.callingApp.enableROIFields(true);
             obj.setFields();
-            obj.buildCompMask(true);
+            obj.buildCompMask();
+            obj.powerMod.addROI(obj.slice,obj.channel);
         end
 
         function deleteCurrentROI(obj)
             tempROI = obj.currentROI;
-            switch (obj.currentROIType)
-                case (obj.RECT)
-                    obj.rectDlt(tempROI,[]);
-                case (obj.CIRC)
-                    obj.circDlt(tempROI,[]);
-                case (obj.ELPS)
-                    obj.elpsDlt(tempROI,[]);
-                case (obj.RING)
-                    obj.ringDlt(tempROI,[]);
-                case (obj.LINE)
-                    obj.lineDlt(tempROI,[]);
-                case (obj.PLGN)
-                    obj.plgnDlt(tempROI,[]);
-            end
+            obj.roiDlt(tempROI,[]);
             delete(tempROI);
         end
 
@@ -268,7 +206,6 @@ classdef MaskListenerHandler < handle
                     coord = obj.currentROI.Center;
                     vals(1) = coord(1);
                     vals(2) = coord(2);
-                    
                     coord = obj.currentROI.SemiAxes;
                     vals(3) = coord(1);
                     vals(4) = coord(2);
@@ -299,19 +236,30 @@ classdef MaskListenerHandler < handle
 
         function setChannel(obj,channel)
             if (obj.splitChannel && (channel~=obj.channel))
-                obj.chngActiveROIs(obj.slice,channel);
+                obj.setROIsVisible(obj.slice,obj.channel,'off');
+                obj.channel = channel;
+                obj.setROIsVisible(obj.slice,obj.channel,'on');
+                obj.currentROI = [];
+                obj.deselectROI();
+                obj.callingApp.enableROIFields(false);
             end
         end
 
         function setSlice(obj,slice)
             if (obj.slice~=slice)
-                obj.chngActiveROIs(slice,obj.channel);
+                obj.setROIsVisible(obj.slice,obj.channel,'off');
+                obj.slice = slice;
+                obj.setROIsVisible(obj.slice,obj.channel,'on');
+                obj.currentROI = [];
+                obj.deselectROI();
+                obj.callingApp.enableROIFields(false);
             end
         end
 
         function deselectROI(obj)
             obj.currentROI = [];
             obj.currentROIType = obj.NONE;
+            obj.powerMod.chngROI();
         end
 
         function val = chngParam(obj,val,ind)
@@ -361,6 +309,7 @@ classdef MaskListenerHandler < handle
                 case (obj.LINE)
                     if (ind==1)
                         val = abs(val);
+                        val = 2*ceil((val+1)/2)-1;
                         obj.lineWidths{obj.slice,obj.channel}(obj.currentROIInd) = val;
                     else
                         if (val<1)
@@ -376,67 +325,57 @@ classdef MaskListenerHandler < handle
                     val=round(val);
                     obj.currentROI.Position = obj.chngNumPnts(obj.currentROI.Position,val);
             end
-            obj.buildCompMask(true);
+            obj.redrawROIMask(obj.currentROIInd);
+            obj.buildCompMask();
+            obj.setFields();
         end
 
-        function hit = imgClk(obj,x,y)
-            hit=obj.roiMask(y,x);
-            if (~hit)
-                obj.currentROIType = obj.NONE;
-                obj.currentROI = [];
-                obj.callingApp.enableROIFields(false);
-            end
-        end
-
+        % called when arrow buttons are used to move mask
         function shiftMask(obj,dspl)
-            switch obj.currentROIType
-                case obj.CIRC
-                    center = obj.currentROI.Center;
-                    rad = obj.currentROI.Radius/sqrt(2);
-                    bounds = [-rad,rad,-rad,rad];
-                    if (~obj.checkInbounds(dspl,center,bounds))
-                        return;
-                    end
-                    center = center + dspl;
-                    obj.currentROI.Center = center;
-                    obj.buildCompMask(true);
-                    obj.callingApp.updateDisplay();
-                    obj.callingApp.setROIFields(center);
-                case obj.RECT
-                    pos = obj.currentROI.Position;
-                    center = [pos(1),pos(2)];
-                    bounds = [0,pos(3),0,pos(4)];
-                    if (~obj.checkInbounds(dspl,center,bounds))
-                        return;
-                    end
-                    pos(1) = pos(1) + dspl(1);
-                    pos(2) = pos(2) + dspl(2);
-                    obj.currentROI.Position = pos;
-                    obj.buildCompMask(true);
-                    obj.callingApp.updateDisplay();
-                    obj.callingApp.setROIFields([pos(1),pos(2)]);
-                case {obj.ELPS, obj.RING}
-                    center = obj.currentROI.Center;
-                    rad = min(obj.currentROI.SemiAxes)/sqrt(2);
-                    bounds = [-rad,rad,-rad,rad];
-                    if (~obj.checkInbounds(dspl,center,bounds))
-                        return;
-                    end
-                    center = center + dspl;
-                    obj.currentROI.Center = center;
-                    obj.buildCompMask(true);
-                    obj.callingApp.updateDisplay();
-                    obj.callingApp.setROIFields(center);
-                case {obj.LINE, obj.PLGN}
-                    pos = obj.currentROI.Position;
-                    center = mean(pos);
-                    bounds = [0, 0, 0, 0];
-                    if (~obj.checkInbounds(dspl,center,bounds))
-                        return;
-                    end
-                    obj.currentROI.Position = pos + repmat(dspl,size(pos,1),1);
-                    obj.buildCompMask(true);
-                    obj.callingApp.updateDisplay();
+            if (obj.currentROIType~=obj.NONE)
+                switch obj.currentROIType
+                    case obj.CIRC
+                        center = obj.currentROI.Center;
+                        rad = obj.currentROI.Radius/sqrt(2);
+                        bounds = [-rad,rad,-rad,rad];
+                        if (~obj.checkInbounds(dspl,center,bounds))
+                            return;
+                        end
+                        center = center + dspl;
+                        obj.currentROI.Center = center;
+                        obj.callingApp.setROIFields(center);
+                    case obj.RECT
+                        pos = obj.currentROI.Position;
+                        center = [pos(1),pos(2)];
+                        bounds = [0,pos(3),0,pos(4)];
+                        if (~obj.checkInbounds(dspl,center,bounds))
+                            return;
+                        end
+                        pos(1) = pos(1) + dspl(1);
+                        pos(2) = pos(2) + dspl(2);
+                        obj.currentROI.Position = pos;
+                        obj.callingApp.setROIFields([pos(1),pos(2)]);
+                    case {obj.ELPS, obj.RING}
+                        center = obj.currentROI.Center;
+                        rad = min(obj.currentROI.SemiAxes)/sqrt(2);
+                        bounds = [-rad,rad,-rad,rad];
+                        if (~obj.checkInbounds(dspl,center,bounds))
+                            return;
+                        end
+                        center = center + dspl;
+                        obj.currentROI.Center = center;
+                        obj.callingApp.setROIFields(center);
+                    case {obj.LINE, obj.PLGN}
+                        pos = obj.currentROI.Position;
+                        center = mean(pos);
+                        bounds = [0, 0, 0, 0];
+                        if (~obj.checkInbounds(dspl,center,bounds))
+                            return;
+                        end
+                        obj.currentROI.Position = pos + repmat(dspl,size(pos,1),1);
+                end
+                obj.redrawROIMask(obj.currentROIInd);
+                obj.buildCompMask();
             end
         end
 
@@ -448,111 +387,50 @@ classdef MaskListenerHandler < handle
                     end
 
                     tempROI = copyobj(obj.currentROI,obj.imageAxes);
-                    switch(obj.currentROIType)
-                        case(obj.CIRC)
-                            obj.circROIs{sl,ch} = [obj.circROIs{sl,ch}, {tempROI}];
-                            addlistener(tempROI,'ROIClicked',@obj.circClck);
-                            addlistener(tempROI,'DeletingROI',@obj.circDlt);
-                            addlistener(tempROI,'ROIMoved',@obj.circMv);
-                            obj.shiftROI(tempROI,2*obj.imageDim);
-                        case(obj.RECT)
-                            obj.rectROIs{sl,ch} = [obj.rectROIs{sl,ch}, {tempROI}];
-                            addlistener(tempROI,'ROIClicked',@obj.rectClck);
-                            addlistener(tempROI,'DeletingROI',@obj.rectDlt);
-                            addlistener(tempROI,'ROIMoved',@obj.rectMv);
-                            coord = tempROI.Position;
-                            coord(1) = coord(1) + 2*obj.imageDim(1);
-                            coord(2) = coord(2) + 2*obj.imageDim(2);
-                            tempROI.Position = coord;
-                        case(obj.ELPS)
-                            obj.elpsROIs{sl,ch} = [obj.elpsROIs{sl,ch}, {tempROI}];
-                            addlistener(tempROI,'ROIClicked',@obj.elpsClck);
-                            addlistener(tempROI,'DeletingROI',@obj.elpsDlt);
-                            addlistener(tempROI,'ROIMoved',@obj.elpsMv);
-                            obj.shiftROI(tempROI,2*obj.imageDim);
-                        case(obj.LINE)
-                            obj.lineROIs{sl,ch} = [obj.lineROIs{sl,ch}, {tempROI}];
-                            obj.lineWidths{sl,ch} = [obj.lineWidths{sl,ch},obj.lineWidths{obj.slice,obj.channel}(obj.currentROIInd)];
-                            addlistener(tempROI,'ROIClicked',@obj.lineClck);
-                            addlistener(tempROI,'DeletingROI',@obj.lineDlt);
-                            addlistener(tempROI,'ROIMoved',@obj.lineMv);
-                            addlistener(tempROI,'VertexAdded',@obj.lineMv);
-                            addlistener(tempROI,'VertexDeleted',@obj.lineMv);
-                            coord = tempROI.Position;
-                            coord = coord + repmat((2*obj.imageDim),size(coord,1),1);
-                            tempROI.Position = coord;
-                        case(obj.RING)
-                            obj.ringROIs{sl,ch} = [obj.ringROIs{sl,ch}, {tempROI}];
-                            obj.ringWidths{sl,ch} = [obj.ringWidths{sl,ch}, obj.ringWidths{obj.slice,obj.channel}(obj.currentROIInd)];
-                            addlistener(tempROI,'ROIClicked',@obj.ringClck);
-                            addlistener(tempROI,'DeletingROI',@obj.ringDlt);
-                            addlistener(tempROI,'ROIMoved',@obj.ringMv);
-                            obj.shiftROI(tempROI,2*obj.imageDim);
-                        case(obj.PLGN)
-                            obj.plgnROIs{sl,ch} = [obj.plgnROIs{sl,ch}, {tempROI}];
-                            addlistener(tempROI,'ROIClicked',@obj.plgnClck);
-                            addlistener(tempROI,'DeletingROI',@obj.plgnDlt);
-                            addlistener(tempROI,'ROIMoved',@obj.plgnMv);
-                            addlistener(tempROI,'VertexAdded',@obj.plgnMv);
-                            addlistener(tempROI,'VertexDeleted',@obj.plgnMv);
-                            coord = tempROI.Position;
-                            coord = coord + repmat((2*obj.imageDim),size(coord,1),1);
-                            tempROI.Position = coord;
+                    obj.rois{sl,ch} = [obj.rois{sl,ch}, {tempROI}];
+                    obj.roiMasks{sl,ch} = cat(3,obj.roiMasks{sl,ch},obj.roiMasks{obj.slice,obj.channel}(:,:,obj.currentROIInd));
+                    obj.roiTypes{sl,ch} = [obj.roiTypes{sl,ch},obj.currentROIType];
+                    obj.lineWidths{sl,ch} = [obj.lineWidths{sl,ch},obj.lineWidths{obj.slice,obj.channel}(obj.currentROIInd)];
+                    obj.ringWidths{sl,ch} = [obj.ringWidths{sl,ch}, obj.ringWidths{obj.slice,obj.channel}(obj.currentROIInd)];
+                    addlistener(tempROI,'ROIClicked',@obj.roiClck);
+                    addlistener(tempROI,'DeletingROI',@obj.roiDlt);
+                    addlistener(tempROI,'ROIMoved',@obj.roiMv);
+                    if ((obj.currentROIType==obj.LINE)||(obj.currentROIType==obj.PLGN))
+                        addlistener(tempROI,'VertexAdded',@obj.roiMv);
+                        addlistener(tempROI,'VertexDeleted',@obj.roiMv);
                     end
+                    tempROI.Visible = 'off';
+                    obj.compMasks(:,:,sl,ch) = (sum(obj.roiMasks{sl,ch},3)>0);
                 end
-
-                tempCh = obj.channel;
-                tempSl = obj.slice;
-                obj.channel = ch;
-                for sl=sl1:sl2
-                    if (tempCh~=ch || tempSl~=sl)
-                        obj.shiftROIs(sl,ch,-2*obj.imageDim);
-                        obj.slice = sl;
-                        obj.buildCompMask(false);
-                        obj.shiftROIs(sl,ch,2*obj.imageDim);
-                    end
-                end
-                obj.channel = tempCh;
-                obj.slice = tempSl;
             end
         end
 
         %% Main function for building mask
-        function buildCompMask(obj,update)
-            obj.roiMask = 0*obj.roiMask;
-            obj.drawMasks(obj.rectROIs);
-            obj.drawMasks(obj.circROIs);
-            obj.drawMasks(obj.elpsROIs);
-            obj.drawMasks(obj.plgnROIs);
-            for ii=1:length(obj.lineROIs{obj.slice,obj.channel})
-                tempMask = createMask(obj.lineROIs{obj.slice,obj.channel}{ii});
-                tempMask = imdilate(tempMask,strel('disk',ceil(obj.lineWidths{obj.slice,obj.channel}(ii)/2)));
-                obj.roiMask = obj.roiMask + tempMask;
-            end
-
-            for ii=1:length(obj.ringROIs{obj.slice,obj.channel})
-                ax = obj.ringROIs{obj.slice,obj.channel}{ii}.SemiAxes;
-                cent = obj.ringROIs{obj.slice,obj.channel}{ii}.Center;
-                x = (obj.xMap-cent(1));
-                y = (obj.yMap-cent(2));
-                theta = -pi/180*obj.ringROIs{obj.slice,obj.channel}{ii}.RotationAngle;
-                tempMask = (1 < obj.ellipseMask(x,y,(ax(1)-obj.ringWidths{obj.slice,obj.channel}(ii)/2),(ax(2)-obj.ringWidths{obj.slice,obj.channel}(ii)/2),theta))...
-                    .* (1 > obj.ellipseMask(x,y,(ax(1)+obj.ringWidths{obj.slice,obj.channel}(ii)/2),(ax(2)+obj.ringWidths{obj.slice,obj.channel}(ii)/2),theta));
-                obj.roiMask = obj.roiMask + tempMask;
-            end
-            obj.roiMasks(:,:,obj.slice,obj.channel) = obj.roiMask > 0;
-            if (update)
-                obj.callingApp.updateOcc();
-            end
+        function buildCompMask(obj)
+            obj.compMasks(:,:,obj.slice,obj.channel) = (sum(obj.roiMasks{obj.slice,obj.channel},3)>0);
+            obj.callingApp.updateOcc();
+            obj.callingApp.updateDisplay();
         end
 
         %% functions for displaying mask/occupancy information
         function mask = getMask(obj)
-            mask = obj.roiMasks(:,:,obj.slice,obj.channel);
+            mask = obj.compMasks(:,:,obj.slice,obj.channel);
+        end
+
+        function mask = getSelectedMask(obj)
+            if (obj.currentROIType == obj.NONE)
+                mask = 0*obj.roiMask;
+            else
+                mask = obj.roiMasks{obj.slice,obj.channel}(:,:,obj.currentROIInd);
+            end
+        end
+
+        function mask = getRoiMask(obj,sl,ch,ind)
+            mask = obj.roiMasks{sl,ch}(:,:,ind);
         end
 
         function mask = getChMask(obj,sl,ch)
-            mask = obj.roiMasks(:,:,sl,ch);
+            mask = obj.compMasks(:,:,sl,ch);
         end
 
         %% File IO
@@ -560,88 +438,101 @@ classdef MaskListenerHandler < handle
             success = false;
             obj.writeDim1=0;
             obj.writeDim2=0;
-            if (isfield(data,'sepCh'))
-                sepCh = data.sepCh;
-                dup = (~sepCh) && obj.splitChannel;
-                if (isfield(data,'circ'))
-                    obj.circROIs = obj.copyROIs(data.circ,dup);
-                    obj.attachListeners(obj.circROIs,@obj.circMv,@obj.circClck,@obj.circDlt);
-                end
-
-                if (isfield(data,'rect'))
-                    obj.rectROIs = obj.copyROIs(data.rect,dup);
-                    obj.attachListeners(obj.rectROIs,@obj.rectMv,@obj.rectClck,@obj.rectDlt);
-                end
-
-                if (isfield(data,'elps'))
-                    obj.elpsROIs = obj.copyROIs(data.elps,dup);
-                    obj.attachListeners(obj.elpsROIs,@obj.elpsMv,@obj.elpsClck,@obj.elpsDlt);
-                end
-
-                if (isfield(data,'ring'))
-                    obj.ringROIs = obj.copyROIs(data.ring,dup);
-                    obj.attachListeners(obj.ringROIs,@obj.ringMv,@obj.ringClck,@obj.ringDlt);
-                    if (isfield(data,'rws'))
-                        obj.ringWidths = obj.copyWidths(data.rws,dup);
-                    else
-                        return;
-                    end
-                end
-
-                if (isfield(data,'line'))
-                    obj.lineROIs = obj.copyROIs(data.line,dup);
-                    for sl=1:obj.slices
-                        for ch=1:obj.channels
-                            for ii=1:length(obj.lineROIs{sl,ch})
-                                obj.lineROIs{sl,ch}{ii}.Parent = obj.imageAxes;
-                                addlistener(obj.lineROIs{sl,ch}{ii},'ROIClicked',@obj.lineClck);
-                                addlistener(obj.lineROIs{sl,ch}{ii},'DeletingROI',@obj.lineDlt);
-                                addlistener(obj.lineROIs{sl,ch}{ii},'ROIMoved',@obj.lineMv);
-                                addlistener(obj.lineROIs{sl,ch}{ii},'VertexAdded',@obj.lineMv);
-                                addlistener(obj.lineROIs{sl,ch}{ii},'VertexDeleted',@obj.lineMv);
-                            end
-                        end
-                    end
-                    if (isfield(data,'lws'))
-                        obj.lineWidths = obj.copyWidths(data.lws,dup);
-                    else
-                        return;
-                    end
-                end
-
-                if (isfield(data,'plgn'))
-                    obj.plgnROIs = obj.copyROIs(data.plgn,dup);
-                    for sl=1:obj.slices
-                        for ch=1:obj.channels
-                            for ii=1:length(obj.plgnROIs{sl,ch})
-                                obj.plgnROIs{sl,ch}{ii}.Parent = obj.imageAxes;
-                                addlistener(obj.plgnROIs{sl,ch}{ii},'ROIClicked',@obj.plgnClck);
-                                addlistener(obj.plgnROIs{sl,ch}{ii},'DeletingROI',@obj.plgnDlt);
-                                addlistener(obj.plgnROIs{sl,ch}{ii},'ROIMoved',@obj.plgnMv);
-                                addlistener(obj.plgnROIs{sl,ch}{ii},'VertexAdded',@obj.plgnMv);
-                                addlistener(obj.plgnROIs{sl,ch}{ii},'VertexDeleted',@obj.plgnMv);
-                            end
-                        end
-                    end
-                end
-
-                tempCh = obj.channel;
-                tempSl = obj.slice;
-                for sl=1:obj.slices
-                    for ch=1:obj.channels
-                        obj.channel = ch;
-                        obj.slice = sl;
-                        obj.buildCompMask(false);
-                        if (tempCh~=ch || tempSl~=sl)
-                            obj.shiftROIs(sl,ch,2*obj.imageDim);
-                        end
-                    end
-                end
-                obj.channel = tempCh;
-                obj.slice = tempSl;
-            else
+            if (~isfield(data,'sepCh'))
                 return;
             end
+
+            sepCh = data.sepCh;
+            for sl=1:obj.slices
+                for ch=1:obj.channels
+                    obj.rois{sl,ch} = cell(0);
+                    obj.roiTypes{sl,ch} = [];
+                    obj.lineWidths{sl,ch} = [];
+                    obj.ringWidths{sl,ch} = [];
+                end
+            end
+
+            if (isfield(data,'rois'))
+                obj.copyROIs(data.rois,obj.NONE,1);
+                if (~isfield(data,'types') || ~isfield(data,'lws') || ~isfield(data,'rws'))
+                    return;
+                end
+
+                obj.roiTypes = obj.copyWidths(data.types);
+                obj.lineWidths = obj.copyWidths(data.lws);
+                obj.ringWidths = obj.copyWidths(data.rws);
+            else
+                if (isfield(data,'circ'))
+                    obj.copyROIs(data.circ,obj.CIRC,1);
+                end
+    
+                if (isfield(data,'rect'))
+                    obj.copyROIs(data.rect,obj.RECT,1);
+                end
+    
+                if (isfield(data,'elps'))
+                    obj.copyROIs(data.elps,obj.ELPS,1);
+                end
+    
+                if (isfield(data,'ring') && isfield(data,'rws'))
+                    obj.copyROIs(data.ring,obj.RING,data.rws);
+                end
+    
+                if (isfield(data,'line') && isfield(data,'lws'))
+                    obj.copyROIs(data.line,obj.LINE,data.lws);
+                end
+    
+                if (isfield(data,'plgn'))
+                    obj.copyROIs(data.plgn,obj.PLGN,1);
+                end
+            end
+
+            if ((~sepCh) && obj.splitChannel)
+                for sl=obj.slices
+                    for ch=2:obj.channels
+                        obj.roiTypes{sl,ch} = obj.roiTypes{sl,1};
+                        obj.lineWidths{sl,ch} = obj.lineWidths{sl,1};
+                        obj.ringWidths{sl,ch} = obj.ringWidths{sl,1};
+                        obj.rois{sl,ch} = cell(1,length(obj.rois{sl,1}));
+                        for ii=1:length(obj.rois{sl,1})
+                            obj.rois{sl,ch}{ii} = copyobj(obj.rois{sl,1}{ii},obj.imageAxes);
+                        end
+                    end
+                end
+            end
+
+            tempCh = obj.channel;
+            tempSl = obj.slice;
+            for sl=1:obj.slices
+                obj.slice = sl;
+                for ch=1:obj.channels
+                    obj.channel = ch;
+                    if (isempty(obj.rois{sl,ch}))
+                        obj.roiMasks{sl,ch} = [];
+                        obj.compMasks(:,:,sl,ch) = 0*obj.compMasks(:,:,sl,ch);
+                    else
+                        obj.roiMasks{sl,ch} = (zeros(obj.imageDim(1),obj.imageDim(2),obj.numRois(sl,ch))>0);
+                        for ii=1:length(obj.rois{sl,ch})
+                            obj.rois{sl,ch}{ii}.Parent = obj.imageAxes;
+                            addlistener(obj.rois{sl,ch}{ii},'ROIClicked',@obj.roiClck);
+                            addlistener(obj.rois{sl,ch}{ii},'DeletingROI',@obj.roiDlt);
+                            addlistener(obj.rois{sl,ch}{ii},'ROIMoved',@obj.roiMv);
+                            if ((obj.roiTypes{sl,ch}(ii)==obj.LINE)||(obj.roiTypes{sl,ch}(ii)==obj.PLGN))
+                                addlistener(obj.rois{sl,ch}{ii},'VertexAdded',@obj.roiMv);
+                                addlistener(obj.rois{sl,ch}{ii},'VertexDeleted',@obj.roiMv);
+                            end
+                            obj.redrawROIMask(ii);
+                        end
+                        obj.compMasks(:,:,sl,ch) = (sum(obj.roiMasks{sl,ch},3)>0);
+
+                        if ((ch~=tempCh)||(sl~=tempSl))
+                            obj.setROIsVisible(sl,ch,'off');
+                        end
+                    end
+                end
+            end
+            obj.channel = tempCh;
+            obj.slice = tempSl;
             success = true;
         end
 
@@ -649,33 +540,28 @@ classdef MaskListenerHandler < handle
             for sl=1:obj.slices
                 for ch=1:obj.channels
                     if (obj.channel~=ch || obj.slice~=sl)
-                        obj.shiftROIs(sl,ch,-2*obj.imageDim);
+                        obj.setROIsVisible(sl,ch,'on');
                     end
                 end
             end
 
             sepCh = obj.splitChannel;
-            circ = obj.circROIs;
-            rect = obj.rectROIs;
-            elps = obj.elpsROIs;
-            line = obj.lineROIs;
-            ring = obj.ringROIs;
-            plgn = obj.plgnROIs;
+            rois = obj.rois;
+            types = obj.roiTypes;
             lws = obj.lineWidths;
             rws = obj.ringWidths;
-            save(fname,"sepCh","circ","rect","elps","line","ring","plgn","lws","rws");
+            save(fname,"sepCh","rois","types","lws","rws");
 
             for sl=1:obj.slices
                 for ch=1:obj.channels
                     if (obj.channel~=ch || obj.slice~=sl)
-                        obj.shiftROIs(sl,ch,2*obj.imageDim);
+                        obj.setROIsVisible(sl,ch,'off');
                     end
                 end
             end
         end
 
         function status = printROIMasks(obj,basename,path)
-            obj.numRois = zeros(obj.slices,obj.channels);
             for ch=1:obj.channels
                 if (obj.channels>1)
                     folderTitle = strcat('channel_',num2str(ch));
@@ -690,7 +576,6 @@ classdef MaskListenerHandler < handle
                     chPath = path;
                 end
                 
-                ind = 0;
                 for sl=1:obj.slices
                     if (obj.slices>1)
                         folderTitle = strcat('slice_',num2str(sl));
@@ -705,40 +590,10 @@ classdef MaskListenerHandler < handle
                         slPath = chPath;
                     end
 
-                    if ((sl~=obj.slice) || (ch~=obj.channel))
-                        obj.shiftROIs(sl,ch,-2*obj.imageDim);
+                    for ii=1:obj.numRois(sl,ch)
+                        ff = fullfile(slPath,strcat(basename,'_',num2str(ii),'.tif'));
+                        imwrite((obj.roiMasks{sl,ch}(:,:,ii)+0),ff,'Compression','none');
                     end
-
-                    ind = obj.printMaskArr(obj.rectROIs{sl,ch},basename,slPath,ind);
-                    ind = obj.printMaskArr(obj.circROIs{sl,ch},basename,slPath,ind);
-                    ind = obj.printMaskArr(obj.elpsROIs{sl,ch},basename,slPath,ind);
-                    ind = obj.printMaskArr(obj.plgnROIs{sl,ch},basename,slPath,ind);
-
-                    for ii=1:length(obj.ringROIs{sl,ch})
-                        ind = ind+1;
-                        ax = obj.ringROIs{sl,ch}{ii}.SemiAxes;
-                        cent = obj.ringROIs{sl,ch}{ii}.Center;
-                        x = (obj.xMap-cent(1));
-                        y = (obj.yMap-cent(2));
-                        theta = -pi/180*obj.ringROIs{sl,ch}{ii}.RotationAngle;
-                        tempMask = (1 < obj.ellipseMask(x,y,(ax(1)-obj.ringWidths{sl,ch}(ii)/2),(ax(2)-obj.ringWidths{sl,ch}(ii)/2),theta))...
-                            .* (1 > obj.ellipseMask(x,y,(ax(1)+obj.ringWidths{sl,ch}(ii)/2),(ax(2)+obj.ringWidths{sl,ch}(ii)/2),theta));
-                        ff = fullfile(slPath,strcat(basename,'_',num2str(ind),'.tif'));
-                        imwrite((tempMask+0),ff, 'Compression','none');
-                    end
-
-                    for ii=1:length(obj.lineROIs{sl,ch})
-                        ind = ind+1;
-                        tempMask = createMask(obj.lineROIs{sl,ch}{ii});
-                        tempMask = imdilate(tempMask,strel('disk',ceil(obj.lineWidths{sl,ch}(ii)/2))) > 0;
-                        ff = fullfile(slPath,strcat(basename,'_',num2str(ind),'.tif'));
-                        imwrite((tempMask+0),ff, 'Compression','none');
-                    end
-
-                    if ((sl~=obj.slice) || (ch~=obj.channel))
-                        obj.shiftROIs(sl,ch,2*obj.imageDim);
-                    end
-                    obj.numRois(sl,ch) = ind;
                 end
             end
             status = true;
@@ -746,244 +601,77 @@ classdef MaskListenerHandler < handle
 
         %% Listeners
         % helper functions used for various listeners
-        function chngROI(obj,roi,type)
-            if (isempty(obj.currentROI)||~eq(obj.currentROI,roi))
-                if (type==obj.LINE)
-                    for ii=1:length(obj.lineROIs{obj.slice,obj.channel})
-                        if (eq(roi,obj.lineROIs{obj.slice,obj.channel}{ii}))
-                            obj.currentROIInd = ii;
-                            break;
-                        end
-                    end
-                elseif (type==obj.RING)
-                    for ii=1:length(obj.ringROIs{obj.slice,obj.channel})
-                        if (eq(roi,obj.ringROIs{obj.slice,obj.channel}{ii}))
-                            obj.currentROIInd = ii;
-                            break;
-                        end
-                    end
-                end
-                obj.currentROIType = type;
-                obj.currentROI = roi;
-                obj.callingApp.setROILabels(obj.ROIParamLabels{obj.currentROIType},obj.currentROIType);
-                obj.callingApp.enableROIFields(true);
-            end
+        function chngROI(obj,ind)
+            obj.currentROIInd = ind;
+            obj.currentROIType = obj.roiTypes{obj.slice,obj.channel}(obj.currentROIInd);
+            obj.currentROI = obj.rois{obj.slice,obj.channel}{ind};
+            obj.callingApp.setROILabels(obj.ROIParamLabels{obj.currentROIType},obj.currentROIType);
+            obj.callingApp.enableROIFields(true);
             obj.setFields();
+            obj.powerMod.chngROI();
             obj.callingApp.updateDisplay();
         end
 
-        % Circle ROI Listeners
-        function circMv(obj,src,~)
-            obj.buildCompMask(true);
-            obj.chngROI(src,obj.CIRC);
+        function redrawROIMask(obj,ind)
+            switch (obj.roiTypes{obj.slice,obj.channel}(ind))
+                case{obj.RECT,obj.CIRC,obj.ELPS,obj.PLGN}
+                    obj.roiMask = createMask(obj.rois{obj.slice,obj.channel}{ind});
+                case(obj.RING)
+                    obj.drawRing(obj.rois{obj.slice,obj.channel}{ind},obj.ringWidths{obj.slice,obj.channel}(ind));
+                case(obj.LINE)
+                    obj.drawLine(obj.rois{obj.slice,obj.channel}{ind},obj.lineWidths{obj.slice,obj.channel}(ind));
+            end
+
+            obj.roiMasks{obj.slice,obj.channel}(:,:,ind) = obj.roiMask > 0;
+            obj.powerMod.redrawROI(obj.slice,obj.channel,ind);
         end
 
-        function circClck(obj,src,~)
-            obj.callingApp.deselectThresh();
-            obj.chngROI(src,obj.CIRC);
+        function roiMv(obj,~,~)
+            obj.redrawROIMask(obj.currentROIInd)
+            obj.buildCompMask();
         end
-        
-        function circDlt(obj,src,~)
-            for ii=1:length(obj.circROIs{obj.slice,obj.channel})
-                if (eq(src,obj.circROIs{obj.slice,obj.channel}{ii}))
-                    obj.circROIs{obj.slice,obj.channel}{ii} = [];
+
+        function roiClck(obj,src,~)
+            obj.callingApp.deselectThresh();
+            for ii=1:length(obj.rois{obj.slice,obj.channel})
+                if (eq(src,obj.rois{obj.slice,obj.channel}{ii}))
+                    ind = ii;
+                    break
+                end
+            end
+            obj.chngROI(ind);
+        end
+
+        function roiDlt(obj,src,~)
+            keep = (ones(1,obj.numRois(obj.slice,obj.channel))>0);
+            for ii=1:length(obj.rois{obj.slice,obj.channel})
+                if (eq(src,obj.rois{obj.slice,obj.channel}{ii}))
+                    obj.rois{obj.slice,obj.channel}{ii} = [];
+                    keep(ii) = false;
                     break;
                 end
             end
-            obj.currentROI = [];
-            obj.circROIs{obj.slice,obj.channel} = obj.circROIs{obj.slice,obj.channel}(~cellfun(@isempty,obj.circROIs{obj.slice,obj.channel}));
-            obj.currentROIType = obj.NONE;
-            obj.callingApp.enableROIFields(false);
-            obj.buildCompMask(true);
-            obj.callingApp.updateDisplay();
-        end
-
-        % Rectangle ROI Listeners
-        function rectMv(obj,src,~)
-            obj.buildCompMask(true);
-            obj.chngROI(src,obj.RECT);
-        end
-        
-        function rectClck(obj,src,~)
-            obj.callingApp.deselectThresh();
-            obj.chngROI(src,obj.RECT);
-        end
-
-        function rectDlt(obj,src,~)
-            for ii=1:length(obj.rectROIs{obj.slice,obj.channel})
-                if(eq(src,obj.rectROIs{obj.slice,obj.channel}{ii}))
-                    obj.rectROIs{obj.slice,obj.channel}{ii} = [];
-                    break;
-                end
-            end
-            obj.currentROI = [];
-            obj.rectROIs{obj.slice,obj.channel} = obj.rectROIs{obj.slice,obj.channel}(~cellfun(@isempty,obj.rectROIs{obj.slice,obj.channel}));
-            obj.currentROIType = obj.NONE;
-            obj.callingApp.enableROIFields(false);
-            obj.buildCompMask(true);
-            obj.callingApp.updateDisplay();
-        end
-
-        % Ellipse ROI Listeners
-        function elpsMv(obj,src,~)
-            obj.buildCompMask(true);
-            obj.chngROI(src,obj.ELPS);
-        end
-
-        function elpsClck(obj,src,~)
-            obj.callingApp.deselectThresh();
-            obj.chngROI(src,obj.ELPS);
-        end
-
-        function elpsDlt(obj,src,~)
-            for ii=1:length(obj.elpsROIs{obj.slice,obj.channel})
-                if (eq(src,obj.elpsROIs{obj.slice,obj.channel}{ii}))
-                    obj.elpsROIs{obj.slice,obj.channel}{ii} = [];
-                    break;
-                end
-            end
-            obj.currentROI = [];
-            obj.elpsROIs{obj.slice,obj.channel} = obj.elpsROIs{obj.slice,obj.channel}(~cellfun(@isempty,obj.elpsROIs{obj.slice,obj.channel}));
-            obj.currentROIType = obj.NONE;
-            obj.callingApp.enableROIFields(false);
-            obj.buildCompMask(true);
-            obj.callingApp.updateDisplay();
-        end
-
-        % Line ROI Listeners
-        function lineMv(obj,src,~)
-            obj.buildCompMask(true);
-            obj.chngROI(src,obj.LINE);
-        end
-
-        function lineClck(obj,src,~)
-            obj.callingApp.deselectThresh();
-            obj.chngROI(src,obj.LINE);
-        end
-
-        function lineDlt(obj,src,~)
-            for ii=1:length(obj.lineROIs{obj.slice,obj.channel})
-                if (eq(src,obj.lineROIs{obj.slice,obj.channel}{ii}))
-                    obj.lineROIs{obj.slice,obj.channel}{ii} = [];
-                    break;
-                end
-            end
-            obj.currentROI = [];
-            keep = ~cellfun(@isempty,obj.lineROIs{obj.slice,obj.channel});
-            obj.lineROIs{obj.slice,obj.channel} = obj.lineROIs{obj.slice,obj.channel}(keep);
+            obj.rois{obj.slice,obj.channel} = obj.rois{obj.slice,obj.channel}(keep);
+            obj.roiTypes{obj.slice,obj.channel} = obj.roiTypes{obj.slice,obj.channel}(keep);
             obj.lineWidths{obj.slice,obj.channel} = obj.lineWidths{obj.slice,obj.channel}(keep);
-            obj.currentROIType = obj.NONE;
-            obj.callingApp.enableROIFields(false);
-            obj.buildCompMask(true);
-            obj.callingApp.updateDisplay();
-        end
-
-        % Ring ROI Listeners
-        function ringMv(obj,src,~)
-            obj.buildCompMask(true);
-            obj.chngROI(src,obj.RING);
-        end
-
-        function ringClck(obj,src,~)
-            obj.callingApp.deselectThresh();
-            obj.chngROI(src,obj.RING);
-        end
-
-        function ringDlt(obj,src,~)
-            for ii=1:length(obj.ringROIs{obj.slice,obj.channel})
-                if (eq(src,obj.ringROIs{obj.slice,obj.channel}{ii}))
-                    obj.ringROIs{obj.slice,obj.channel}{ii} = [];
-                    break;
-                end
-            end
-            obj.currentROI = [];
-            keep = ~cellfun(@isempty,obj.ringROIs{obj.slice,obj.channel});
-            obj.ringROIs{obj.slice,obj.channel} = obj.ringROIs{obj.slice,obj.channel}(keep);
             obj.ringWidths{obj.slice,obj.channel} = obj.ringWidths{obj.slice,obj.channel}(keep);
-            obj.currentROIType = obj.NONE;
-            obj.callingApp.enableROIFields(false);
-            obj.buildCompMask(true);
-            obj.callingApp.updateDisplay();
-        end
-
-        % Polygon ROI Listeners
-        function plgnMv(obj,src,~)
-            obj.buildCompMask(true);
-            obj.chngROI(src,obj.PLGN);
-        end
-
-        function plgnClck(obj,src,~)
-            obj.callingApp.deselectThresh();
-            obj.chngROI(src,obj.PLGN);
-        end
-
-        function plgnDlt(obj,src,~)
-            for ii=1:length(obj.plgnROIs{obj.slice,obj.channel})
-                if (eq(src,obj.plgnROIs{obj.slice,obj.channel}{ii}))
-                    obj.plgnROIs{obj.slice,obj.channel}{ii} = [];
-                    break;
-                end
-            end
+            obj.numRois(obj.slice,obj.channel) = length(obj.rois{obj.slice,obj.channels});
+            obj.roiMasks{obj.slice,obj.channel} = obj.roiMasks{obj.slice,obj.channel}(:,:,keep);
             obj.currentROI = [];
-            obj.plgnROIs{obj.slice,obj.channel} = obj.plgnROIs{obj.slice,obj.channel}(~cellfun(@isempty,obj.plgnROIs{obj.slice,obj.channel}));
             obj.currentROIType = obj.NONE;
             obj.callingApp.enableROIFields(false);
-            obj.buildCompMask(true);
-            obj.callingApp.updateDisplay();
+            obj.buildCompMask();
+            obj.powerMod.deleteROI(obj.slice,obj.channel,ii);
         end
 
         %% other helper functions
-        function shiftROIs(obj,slice,channel,shiftVec)
-            for ii=1:length(obj.rectROIs{slice,channel})
-                coord = obj.rectROIs{slice,channel}{ii}.Position;
-                coord(1) = coord(1) + shiftVec(1);
-                coord(2) = coord(2) + shiftVec(2);
-                obj.rectROIs{slice,channel}{ii}.Position = coord;
-            end
-
-            for ii=1:length(obj.circROIs{slice,channel})
-                obj.shiftROI(obj.circROIs{slice,channel}{ii},shiftVec);
-            end
-
-            for ii=1:length(obj.elpsROIs{slice,channel})
-                obj.shiftROI(obj.elpsROIs{slice,channel}{ii},shiftVec);
-            end
-
-            for ii=1:length(obj.ringROIs{slice,channel})
-                obj.shiftROI(obj.ringROIs{slice,channel}{ii},shiftVec);
-            end
-
-            for ii=1:length(obj.lineROIs{slice,channel})
-                coord = obj.lineROIs{slice,channel}{ii}.Position;
-                coord = coord + repmat(shiftVec,size(coord,1),1);
-                obj.lineROIs{slice,channel}{ii}.Position = coord;
-            end
-
-            for ii=1:length(obj.plgnROIs{slice,channel})
-                coord = obj.plgnROIs{slice,channel}{ii}.Position;
-                coord = coord + repmat(shiftVec,size(coord,1),1);
-                obj.plgnROIs{slice,channel}{ii}.Position = coord;
+        function setROIsVisible(obj,slice,channel,vis)
+            for ii=1:length(obj.rois{slice,channel})
+                obj.rois{slice,channel}{ii}.Visible = vis;
             end
         end
 
-        function chngActiveROIs(obj,slice,channel)
-            obj.shiftROIs(obj.slice,obj.channel,2*obj.imageDim);
-            obj.slice=slice;
-            obj.channel=channel;
-            obj.shiftROIs(obj.slice,obj.channel,-2*obj.imageDim);
-            obj.currentROI = [];
-            obj.currentROIType = obj.NONE;
-            obj.callingApp.enableROIFields(false);
-        end
-
-        function newArray = copyROIs(obj,arr,dup)
-            newArray = cell(obj.slices,obj.channels);
-            for sl=1:obj.slices
-                for ch=1:obj.channels
-                    newArray{sl,ch} = cell(0);
-                end
-            end
-
+        function copyROIs(obj,arr,type,widths)
             if ((obj.writeDim1==0) || (obj.writeDim2==0))
                 if (size(arr,1)>obj.slices)
                     obj.writeDim1 = obj.slices;
@@ -998,22 +686,36 @@ classdef MaskListenerHandler < handle
                 end
             end
     
-            if (dup)
-                for sl=1:obj.writeDim1
-                    for ch=1:obj.channels
-                        newArray{sl,ch} = arr{sl,1};
+            for sl=1:obj.writeDim1
+                for ch=1:obj.writeDim2
+                    tempArray = cell(1,(length(obj.rois{sl,ch})+length(arr{sl,ch})));
+                    if (~isempty(obj.rois{sl,ch}))
+                        tempArray(1:length(obj.rois{sl,ch})) = obj.rois{sl,ch};
                     end
-                end
-            else
-                for sl=1:obj.writeDim1
-                    for ch=1:obj.writeDim2
-                        newArray{sl,ch} = arr{sl,ch};
+
+                    if (~isempty(arr{sl,ch}))
+                        tempArray((length(obj.rois{sl,ch})+1):end) = arr{sl,ch};
+                    end
+                    obj.rois{sl,ch} = tempArray;
+                    obj.numRois(sl,ch) = length(tempArray);
+                    if (type~=obj.NONE)
+                        obj.roiTypes{sl,ch} = [obj.roiTypes{sl,ch}, type*ones(1,length(arr{sl,ch}))];
+                        if (type==obj.RING)
+                            obj.ringWidths{sl,ch} = [obj.ringWidths{sl,ch}, widths{sl,ch}];
+                            obj.lineWidths{sl,ch} = [obj.lineWidths{sl,ch}, ones(1,length(arr{sl,ch}))];
+                        elseif (type==obj.LINE)
+                            obj.lineWidths{sl,ch} = [obj.lineWidths{sl,ch}, widths{sl,ch}];
+                            obj.ringWidths{sl,ch} = [obj.ringWidths{sl,ch}, ones(1,length(arr{sl,ch}))];
+                        else
+                            obj.lineWidths{sl,ch} = [obj.lineWidths{sl,ch}, ones(1,length(arr{sl,ch}))];
+                            obj.ringWidths{sl,ch} = [obj.ringWidths{sl,ch}, ones(1,length(arr{sl,ch}))];
+                        end
                     end
                 end
             end
         end
 
-        function newArray = copyWidths(obj,arr,dup)
+        function newArray = copyWidths(obj,arr)
             newArray = cell(obj.slices,obj.channels);
             for sl=1:obj.slices
                 for ch=1:obj.channels
@@ -1021,17 +723,9 @@ classdef MaskListenerHandler < handle
                 end
             end
 
-            if (dup)
-                for sl=1:obj.writeDim1
-                    for ch=1:obj.channels
-                        newArray{sl,ch} = arr{sl,1};
-                    end
-                end
-            else
-                for sl=1:obj.writeDim1
-                    for ch=1:obj.writeDim2
-                        newArray{sl,ch} = arr{sl,ch};
-                    end
+            for sl=1:obj.writeDim1
+                for ch=1:obj.writeDim2
+                    newArray{sl,ch} = arr{sl,ch};
                 end
             end
         end
@@ -1058,23 +752,19 @@ classdef MaskListenerHandler < handle
             end
         end
 
-        function attachListeners(obj,rois,mvFun,clckFun,delFun)
-            for sl=1:obj.slices
-                for ch=1:obj.channels
-                    for ii=1:length(rois{sl,ch})
-                        rois{sl,ch}{ii}.Parent = obj.imageAxes;
-                        addlistener(rois{sl,ch}{ii},'ROIClicked',clckFun);
-                        addlistener(rois{sl,ch}{ii},'DeletingROI',delFun);
-                        addlistener(rois{sl,ch}{ii},'ROIMoved',mvFun);
-                    end
-                end
-            end
+        function drawRing(obj,roi,width)
+            ax = roi.SemiAxes;
+            cent = roi.Center;
+            x = (obj.xMap-cent(1));
+            y = (obj.yMap-cent(2));
+            theta = -pi/180*roi.RotationAngle;
+            obj.roiMask = (1 < obj.ellipseMask(x,y,(ax(1)-width/2),(ax(2)-width/2),theta))...
+                .* (1 > obj.ellipseMask(x,y,(ax(1)+width/2),(ax(2)+width/2),theta));
         end
 
-        function drawMasks(obj,rois)
-            for ii=1:length(rois{obj.slice,obj.channel})
-                obj.roiMask = obj.roiMask + createMask(rois{obj.slice,obj.channel}{ii});
-            end
+        function drawLine(obj,roi,width)
+            obj.roiMask = createMask(roi);
+            obj.roiMask = imdilate(obj.roiMask,strel('disk',(width+1)/2));
         end
 
         function inbounds = checkInbounds(obj,dspl,center,box)
@@ -1103,15 +793,6 @@ classdef MaskListenerHandler < handle
         function d = ellipseMask(x,y,a,b,theta)
             d = (a^2*sin(theta)^2+b^2*cos(theta)^2)*x.^2+2*(b^2-a^2)*sin(theta)*cos(theta)*x.*y+(a^2*cos(theta)^2+b^2*sin(theta)^2)*y.^2;
             d = d/(a^2*b^2);
-        end
-
-        function ind = printMaskArr(rois,basename,path,ind)
-            for ii=1:length(rois)
-                ind = ind + 1;
-                tempMask = createMask(rois{ii});
-                ff = fullfile(path,strcat(basename,'_',num2str(ind),'.tif'));
-                imwrite((tempMask+0),ff, 'Compression','none');
-            end
         end
     end
 end

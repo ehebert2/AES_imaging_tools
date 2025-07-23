@@ -130,12 +130,12 @@ classdef ThresholdMaskHandler < handle
             if (obj.sepChannels)
                 for sl=1:obj.slices
                     for ch=1:obj.channels
-                        obj.maskGenerators{sl,ch}.setImage(images(:,:,sl,(1+obj.bidirectional)*ch));
+                        obj.maskGenerators{sl,ch}.setImage(images(:,:,sl,ch));
                     end
                 end
             else
                 for sl=1:obj.slices
-                    obj.maskGenerators{sl,1}.setImage(images(:,:,sl,(1+obj.bidirectional)*obj.mainChannel));
+                    obj.maskGenerators{sl,1}.setImage(images(:,:,sl,obj.mainChannel));
                 end
             end
 

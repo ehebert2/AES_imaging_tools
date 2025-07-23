@@ -224,6 +224,8 @@ classdef OutputFileHandler < handle
 
                         if (multiSlice)
                             bgName = strcat(bgName,'_sl',num2str(sl),'.bin');
+                        else
+                            bgName = strcat(bgName,'.bin');
                         end
                         obj.fBgm{sl,ch} = AESFile.getWriter(fullfile(binPath,bgName),2,numFrames,AESFile.DOUBLE,true);
                     end
