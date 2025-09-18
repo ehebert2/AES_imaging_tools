@@ -171,6 +171,9 @@ function params = validateParams(params)
     end
 
     if (~params.mtn)
+        params.mtnIntlWndw = ;
+        params.mtnWndw = 3;
+        params.sptlWndw = 0;
         params.mtnOverlap = false;
         params.mtnTrace = false;
     end

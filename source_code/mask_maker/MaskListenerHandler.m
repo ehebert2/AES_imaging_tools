@@ -327,7 +327,6 @@ classdef MaskListenerHandler < handle
             end
             obj.redrawROIMask(obj.currentROIInd);
             obj.buildCompMask();
-            obj.setFields();
         end
 
         % called when arrow buttons are used to move mask
@@ -627,7 +626,8 @@ classdef MaskListenerHandler < handle
         end
 
         function roiMv(obj,~,~)
-            obj.redrawROIMask(obj.currentROIInd)
+            obj.redrawROIMask(obj.currentROIInd);
+            obj.setFields();
             obj.buildCompMask();
         end
 
@@ -643,6 +643,10 @@ classdef MaskListenerHandler < handle
         end
 
         function roiDlt(obj,src,~)
+            if (isempty(src))
+                return;
+            end
+            
             keep = (ones(1,obj.numRois(obj.slice,obj.channel))>0);
             for ii=1:length(obj.rois{obj.slice,obj.channel})
                 if (eq(src,obj.rois{obj.slice,obj.channel}{ii}))
@@ -655,7 +659,7 @@ classdef MaskListenerHandler < handle
             obj.roiTypes{obj.slice,obj.channel} = obj.roiTypes{obj.slice,obj.channel}(keep);
             obj.lineWidths{obj.slice,obj.channel} = obj.lineWidths{obj.slice,obj.channel}(keep);
             obj.ringWidths{obj.slice,obj.channel} = obj.ringWidths{obj.slice,obj.channel}(keep);
-            obj.numRois(obj.slice,obj.channel) = length(obj.rois{obj.slice,obj.channels});
+            obj.numRois(obj.slice,obj.channel) = length(obj.rois{obj.slice,obj.channel});
             obj.roiMasks{obj.slice,obj.channel} = obj.roiMasks{obj.slice,obj.channel}(:,:,keep);
             obj.currentROI = [];
             obj.currentROIType = obj.NONE;

@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="3088631194" file="C:\Users\ScanImage\Desktop\AES_image_tools_v10\motion_correction\Motion Correction App.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v10\motion_correction" name="Motion Correction App" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="2413791992" file="C:\Users\ScanImage\Desktop\AES_image_tools_v12\motion_correction\code\Motion Correction App.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v12\motion_correction\code" name="Motion Correction App" target="target.mlapps" target-name="Package App">
     <param.appname>Motion Correction App</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,8 +12,8 @@
     </param.icons>
     <param.summary>Process videos created using AES.</param.summary>
     <param.description>Handles motion correction and trace extraction for videos made using AES.</param.description>
-    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tpc4619088_a04b_40f5_8968_cf80c79729e3.png</param.screenshot>
-    <param.version>4.2</param.version>
+    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp54ccb598_4f55_43d9_99fc_fff38976db4e.png</param.screenshot>
+    <param.version>4.5</param.version>
     <param.products.name />
     <param.products.id />
     <param.products.version />
@@ -54,6 +54,7 @@
       <file>${PROJECT_ROOT}\MaskType.m</file>
       <file>${PROJECT_ROOT}\MotionTracker.m</file>
       <file>${PROJECT_ROOT}\OutputFileHandler.m</file>
+      <file>${PROJECT_ROOT}\paramsToJson.m</file>
       <file>${PROJECT_ROOT}\Reslicer.m</file>
       <file>${PROJECT_ROOT}\StackTracker.m</file>
       <file>${PROJECT_ROOT}\validateParams.m</file>
@@ -63,7 +64,7 @@
     </fileset.resources>
     <fileset.package />
     <build-deliverables>
-      <file location="C:\Users\ScanImage\Desktop\AES_image_tools_v10" name="motion_correction" optional="false">C:\Users\ScanImage\Desktop\AES_image_tools_v10\motion_correction</file>
+      <file location="C:\Users\ScanImage\Desktop\AES_image_tools_v12\motion_correction" name="code" optional="false">C:\Users\ScanImage\Desktop\AES_image_tools_v12\motion_correction\code</file>
     </build-deliverables>
     <workflow />
     <matlab>

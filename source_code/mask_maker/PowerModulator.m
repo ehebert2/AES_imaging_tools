@@ -397,7 +397,7 @@ classdef PowerModulator < handle
             obj.roiTrans{sl,ch} = obj.roiTrans{sl,ch}./max(obj.roiTrans{sl,ch});
             minVal = min(obj.roiTrans{sl,ch},[],'all');
             if (minVal < obj.minTrans)
-                obj.roiTrans{sl,ch} = ob.roiTrans{sl,ch} * obj.minTrans / minVal;
+                obj.roiTrans{sl,ch} = obj.roiTrans{sl,ch} * obj.minTrans / minVal;
                 filter = obj.roiTrans{sl,ch} > 1;
                 obj.roiTrans{sl,ch} = filter + (1-filter) .* obj.roiTrans{sl,ch};
             end
@@ -699,6 +699,10 @@ classdef PowerModulator < handle
                     tMask = mask;
                     mask = zeros(size(mask));
                     for ii=1:length(vals)
+                        if (vals(ii)==0)
+                            continue;
+                        end
+                        
                         ind = 1;
                         while(obj.calMaps{ch}(ind,2) < vals(ii))
                             ind = ind + 1;
@@ -714,6 +718,10 @@ classdef PowerModulator < handle
                 else
                     for y=1:obj.imDim(1)
                         for x = 1:obj.imDim(2)
+                            if (mask(y,x)==0)
+                                continue;
+                            end
+
                             ind = 1;
                             while (obj.calMaps{ch}(ind,2) < mask(y,x))
                                 ind = ind + 1;

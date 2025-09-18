@@ -171,42 +171,41 @@ function params = validateParams(params)
     end
 
     if (~params.mtn)
-        params.mtnIntlWndw = 1;
-        params.mtnWndw = 3;
-        params.sptlWndw = 0;
-        params.passes = 1;
-        params.intlPasses = 1;
-        params.fft = false;
         params.mtnOverlap = false;
-    else
-        if (~isfield(params,'mtnIntlWndw'))
-            params.mtnIntlWndw = 1;
-        end
-    
-        if (~isfield(params,'mtnWndw'))
-            params.mtnWndw = 3;
-        end
-    
-        if (~isfield(params,'sptlWndw'))
-            params.sptlWndw = 0;
-        end
-    
-        if (~isfield(params,'passes'))
-            params.passes = 1;
-        end
-    
-        if(~isfield(params,'intlPasses'))
-            params.intlPasses = 1;
-        end
-    
-        if (~isfield(params,'fft'))
-            params.fft = false;
-        end
+        params.mtnTrace = false;
+    end
 
-        if (~isfield(params,'mtnOverlap'))
-            params.mtnOverlap = false;
-        end
-    end    
+    if (~isfield(params,'mtnIntlWndw'))
+        params.mtnIntlWndw = 1;
+    end
+    
+    if (~isfield(params,'mtnWndw'))
+        params.mtnWndw = 3;
+    end
+    
+    if (~isfield(params,'sptlWndw'))
+        params.sptlWndw = 0;
+    end
+    
+    if (~isfield(params,'passes'))
+        params.passes = 1;
+    end
+    
+    if(~isfield(params,'intlPasses'))
+        params.intlPasses = 1;
+    end
+    
+    if (~isfield(params,'fft'))
+        params.fft = false;
+    end
+
+    if (~isfield(params,'mtnOverlap'))
+        params.mtnOverlap = false;
+    end
+
+    if (~isfield(params,'mtnTrace'))
+        params.mtnTrace = false;
+    end
 
     if (~isfield(params,'bgTrace'))
         params.bgTrace = false;
@@ -235,5 +234,29 @@ function params = validateParams(params)
 
     if (~isfield(params,'proj'))
         params.proj = false;
+    end
+
+    if (~isfield(params,'zeroVidFl'))
+        params.zeroVidFl = false;
+    end
+
+    if (~isfield(params,'zeroTraceFl'))
+        params.zeroTraceFl = false;
+    end
+
+    if (~isfield(params,'flTrace'))
+        params.flTrace = false;
+    end
+
+    if (~isfield(params,'fillBG'))
+        params.fillBG = false;
+    end
+
+    if (~isfield(params,'checkAcc'))
+        params.checkAcc = false;
+    end
+
+    if (~isfield(params,'maxAcc'))
+        params.maxAcc = 4;
     end
 end

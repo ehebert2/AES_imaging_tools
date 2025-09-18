@@ -14,18 +14,23 @@ This is just to help me remember what fields the params struct contains.
 	
 	% Variables describing what is saved to file after processing
 	multiVid: 	whether or not multiple videos are to be processed
-	splitFolders: 	whether or not to split the output into folders for each video
 	proj:		save projection of each channel
 	saveMasks: 	whether or not to save masks used for data analysis
 	saveVid:	whether or not to save the output video
 	compress: 	whether or not to set pixels outside imaging roi's to 0 and compress output video
-	zeroVid: 	whether or not to subtract video by background (value outside of laser exposure regions)
+	fillBG:		fill in pixels outside AES regions with average of pixels in AES regions but outside sample regions
+	zeroVid: 	whether or not to subtract video by electrical background (average value outside of laser exposure regions)
+	zeroVidFl:	whether or not to subtract video by flourescence background (average value in AES exposure regions but outside sample regions)
 	bgTrace: 	save average and stdev of pixels outside laser exposure regions for each frame
+	flTrace:	save average and stdev of pixels in AES regions but outside sample regions
 	aesTrace: 	save pixel values inside each AES ROI
 	smplTrace: 	save pixel values inside each sample ROI (after motion correction if using)
-	zeroTrace:	subtrace background mean from sample and aes traces before saving.
+	zeroTrace:	subtract background mean from sample and aes traces before saving.
+	zeroTraceFl:	subtract flourescence background mean from sample and aes traces before saving.
 	mtnTrace: 	save displacement in pixel units of rigid motion correction for each frame
 	mtnOverlap: 	save boolean of each sample ROI for each frame determining if the sample ROI lies within the AES ROI region after motion correction.
+	checkAcc:	check if frame motion exceeds threshold acceleration.
+	maxAcc:		max acceleration of frame (px/fr^2) for mtnOverlap boolean (motion correction can undershoot for high acceleration due to temporal blurring).
 	
 	% Variables describing motion correction (if using)
 	mtn: 		whether or not to do motion correction

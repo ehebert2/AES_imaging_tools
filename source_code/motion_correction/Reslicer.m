@@ -25,7 +25,7 @@ classdef Reslicer < handle
                     obj.idMap(sl,ch,:) = [sl,ch];
                 end
             end
-            obj.resetMap;
+            obj.resetMap();
         end
 
         function newArr = mapCells(obj,oldArr)
