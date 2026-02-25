@@ -1,17 +1,22 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration file="D:\research\aes_image_tools\mask_maker\AESmaskapp.prj" location="D:\research\aes_image_tools\mask_maker" name="AESmaskapp" target="target.ezdeploy.standalone" target-name="Application Compiler">
+  <configuration file="D:\research\aes_image_tools\mask_maker\code\AESmaskapp.prj" location="D:\research\aes_image_tools\mask_maker\code" name="AESmaskapp" target="target.ezdeploy.standalone" target-name="Application Compiler">
     <param.appname>AESmaskapp</param.appname>
-    <param.icon />
-    <param.icons />
-    <param.version>3.7</param.version>
+    <param.icon>${PROJECT_ROOT}\AESmaskapp_resources\icon.ico</param.icon>
+    <param.icons>
+      <file>${PROJECT_ROOT}\AESmaskapp_resources\icon_48.png</file>
+      <file>${PROJECT_ROOT}\AESmaskapp_resources\icon_32.png</file>
+      <file>${PROJECT_ROOT}\AESmaskapp_resources\icon_24.png</file>
+      <file>${PROJECT_ROOT}\AESmaskapp_resources\icon_16.png</file>
+    </param.icons>
+    <param.version>4.1</param.version>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
-    <param.company />
+    <param.company>Cornell University</param.company>
     <param.summary>Generate masks for use with AES.</param.summary>
     <param.description />
-    <param.screenshot>${PROJECT_ROOT}\+helper_apps\images\thumbnail_mask_app.png</param.screenshot>
+    <param.screenshot>${PROJECT_ROOT}\+helper_apps\+power_modulation\logo\thumbnail_mask_app.png</param.screenshot>
     <param.guid />
-    <param.installpath.string>\AESmaskapp\</param.installpath.string>
+    <param.installpath.string>\Cornell University\AESmaskapp\</param.installpath.string>
     <param.installpath.combo>option.installpath.programfiles</param.installpath.combo>
     <param.logo />
     <param.install.notes />
@@ -43,10 +48,7 @@
 	 -?  print help on how to use the application 
 	 input arguments</param.help.text>
     <unset>
-      <param.icon />
-      <param.icons />
       <param.email />
-      <param.company />
       <param.description />
       <param.guid />
       <param.installpath.string />
@@ -78,9 +80,17 @@
     <fileset.main>
       <file>${PROJECT_ROOT}\aes_video_mask_app.mlapp</file>
     </fileset.main>
-    <fileset.resources />
+    <fileset.resources>
+      <file>${PROJECT_ROOT}\+helper_apps\images\pause.png</file>
+      <file>${PROJECT_ROOT}\+helper_apps\images\stop_active.png</file>
+    </fileset.resources>
     <fileset.package />
     <fileset.depfun>
+      <file>${PROJECT_ROOT}\+helper_apps\+power_modulation\fov_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\+power_modulation\logo\thumbnail_mask_app.png</file>
+      <file>${PROJECT_ROOT}\+helper_apps\+power_modulation\roi_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\+power_modulation\slice_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\+power_modulation\transmission_cal_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\BC_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\bidirectional_shift_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\centerApp.m</file>
@@ -90,23 +100,22 @@
       <file>${PROJECT_ROOT}\+helper_apps\images\frameforward.png</file>
       <file>${PROJECT_ROOT}\+helper_apps\images\play.png</file>
       <file>${PROJECT_ROOT}\+helper_apps\images\stop.png</file>
-      <file>${PROJECT_ROOT}\+helper_apps\images\thumbnail_mask_app.png</file>
       <file>${PROJECT_ROOT}\+helper_apps\mask_output_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\mask_threshold_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\playback_helper_app.mlapp</file>
-      <file>${PROJECT_ROOT}\+helper_apps\power_modulation_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\roi_duplicate_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\MaskGenerator.m</file>
       <file>${PROJECT_ROOT}\MaskListenerHandler.m</file>
+      <file>${PROJECT_ROOT}\Placeholder.m</file>
       <file>${PROJECT_ROOT}\PowerModulator.m</file>
       <file>${PROJECT_ROOT}\StackTracker.m</file>
       <file>${PROJECT_ROOT}\ThresholdMaskHandler.m</file>
       <file>${PROJECT_ROOT}\validateParams.m</file>
     </fileset.depfun>
     <build-deliverables>
-      <file location="${PROJECT_ROOT}\AESmaskapp\for_testing" name="readme.txt" optional="true">D:\research\aes_image_tools\mask_maker\AESmaskapp\for_testing\readme.txt</file>
-      <file location="${PROJECT_ROOT}\AESmaskapp\for_testing" name="AESmaskapp.exe" optional="false">D:\research\aes_image_tools\mask_maker\AESmaskapp\for_testing\AESmaskapp.exe</file>
-      <file location="${PROJECT_ROOT}\AESmaskapp\for_testing" name="splash.png" optional="false">D:\research\aes_image_tools\mask_maker\AESmaskapp\for_testing\splash.png</file>
+      <file location="${PROJECT_ROOT}\AESmaskapp\for_testing" name="readme.txt" optional="true">D:\research\aes_image_tools\mask_maker\code\AESmaskapp\for_testing\readme.txt</file>
+      <file location="${PROJECT_ROOT}\AESmaskapp\for_testing" name="splash.png" optional="false">D:\research\aes_image_tools\mask_maker\code\AESmaskapp\for_testing\splash.png</file>
+      <file location="${PROJECT_ROOT}\AESmaskapp\for_testing" name="AESmaskapp.exe" optional="false">D:\research\aes_image_tools\mask_maker\code\AESmaskapp\for_testing\AESmaskapp.exe</file>
     </build-deliverables>
     <workflow />
     <matlab>

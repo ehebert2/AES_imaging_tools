@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration build-checksum="58544214" file="D:\research\aes_image_tools\motion_correction\Motion_correction_app.prj" location="D:\research\aes_image_tools\motion_correction" name="Motion_correction_app" preferred-package-location="D:\research\aes_image_tools\motion_correction\Motion_correction_app\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="Application Compiler">
+  <configuration build-checksum="437400193" file="D:\research\aes_image_tools\motion_correction\code\Motion_correction_app.prj" location="D:\research\aes_image_tools\motion_correction\code" name="Motion_correction_app" preferred-package-location="D:\research\aes_image_tools\motion_correction\code\Motion_correction_app\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="Application Compiler">
     <param.appname>Motion_correction_app</param.appname>
     <param.icon>${PROJECT_ROOT}\Motion_correction_app_resources\icon.ico</param.icon>
     <param.icons>
@@ -8,15 +8,15 @@
       <file>${PROJECT_ROOT}\Motion_correction_app_resources\icon_24.png</file>
       <file>${PROJECT_ROOT}\Motion_correction_app_resources\icon_16.png</file>
     </param.icons>
-    <param.version>3.2</param.version>
+    <param.version>4.6</param.version>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
-    <param.email />
-    <param.company />
+    <param.email>esh84@cornell.edu</param.email>
+    <param.company>Cornell University</param.company>
     <param.summary>Process videos created using AES.</param.summary>
     <param.description>Handles motion correction and trace extraction for videos made using AES.</param.description>
     <param.screenshot>D:\research\aes_image_tools\graphics\splash_screens\thumbnail_compression_app.png</param.screenshot>
     <param.guid />
-    <param.installpath.string>\Motion_correction_app\</param.installpath.string>
+    <param.installpath.string>\Cornell University\Motion_correction_app\</param.installpath.string>
     <param.installpath.combo>option.installpath.programfiles</param.installpath.combo>
     <param.logo />
     <param.install.notes />
@@ -46,12 +46,8 @@
 	 
  Input Arguments 
 	 -?  print help on how to use the application 
-	 input arguments 
- Description 
- 	 Handles motion correction and trace extraction for videos made using AES (Adaptive Excitation Source).</param.help.text>
+	 input arguments</param.help.text>
     <unset>
-      <param.email />
-      <param.company />
       <param.guid />
       <param.installpath.string />
       <param.installpath.combo />
@@ -100,6 +96,7 @@
       <file>${PROJECT_ROOT}\+helper_apps\playback_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\preview_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\preview_params_helper_app.mlapp</file>
+      <file>${PROJECT_ROOT}\+helper_apps\reslicer_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\roi_adjust_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\+helper_apps\stack_select_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\AESFile.m</file>
@@ -107,13 +104,15 @@
       <file>${PROJECT_ROOT}\MaskType.m</file>
       <file>${PROJECT_ROOT}\MotionTracker.m</file>
       <file>${PROJECT_ROOT}\OutputFileHandler.m</file>
+      <file>${PROJECT_ROOT}\paramsToJson.m</file>
+      <file>${PROJECT_ROOT}\Reslicer.m</file>
       <file>${PROJECT_ROOT}\StackTracker.m</file>
       <file>${PROJECT_ROOT}\validateParams.m</file>
     </fileset.depfun>
     <build-deliverables>
-      <file location="${PROJECT_ROOT}\Motion_correction_app\for_testing" name="Motion_correction_app.exe" optional="false">D:\research\aes_image_tools\motion_correction\Motion_correction_app\for_testing\Motion_correction_app.exe</file>
-      <file location="${PROJECT_ROOT}\Motion_correction_app\for_testing" name="readme.txt" optional="true">D:\research\aes_image_tools\motion_correction\Motion_correction_app\for_testing\readme.txt</file>
-      <file location="${PROJECT_ROOT}\Motion_correction_app\for_testing" name="splash.png" optional="false">D:\research\aes_image_tools\motion_correction\Motion_correction_app\for_testing\splash.png</file>
+      <file location="${PROJECT_ROOT}\Motion_correction_app\for_testing" name="splash.png" optional="false">D:\research\aes_image_tools\motion_correction\code\Motion_correction_app\for_testing\splash.png</file>
+      <file location="${PROJECT_ROOT}\Motion_correction_app\for_testing" name="Motion_correction_app.exe" optional="false">D:\research\aes_image_tools\motion_correction\code\Motion_correction_app\for_testing\Motion_correction_app.exe</file>
+      <file location="${PROJECT_ROOT}\Motion_correction_app\for_testing" name="readme.txt" optional="true">D:\research\aes_image_tools\motion_correction\code\Motion_correction_app\for_testing\readme.txt</file>
     </build-deliverables>
     <workflow />
     <matlab>

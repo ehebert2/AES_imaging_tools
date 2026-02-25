@@ -8,6 +8,7 @@ classdef TraceHandler < handle
         aesTracesRef
         smplTracesRef
         bgTracesRef
+        flBgTracesRef
         overlapTraces
         mtnTraces
         numFiles
@@ -19,13 +20,15 @@ classdef TraceHandler < handle
         hasAes
         hasSmpl
         hasBg
+        hasFl
         hasMtn
         hasOverlap
         
         % filter variables
-        filter
+        filterCoefA
+        filterCoefB
         filtering
-        filterFwhm
+        filterF
 
         % processed data
         aesTraces
@@ -33,9 +36,11 @@ classdef TraceHandler < handle
         aesTotTraces
         smplTotTraces
         bgTraces
+        flBgTraces
         
         % additional ui variables
         overlapEdges
+        totOverlapEdges
         yLimAes
         yLimSmpl
         numAesTraces
@@ -50,10 +55,11 @@ classdef TraceHandler < handle
         photonCal
         usingFnc
         usrFnc
+        ySmplTitle
+        xTitle
 
         % information about file and video structure
         status
-        splitChannel
         channels
         channel
         fIndex
@@ -63,15 +69,6 @@ classdef TraceHandler < handle
         smplNames
     end
 
-    % Trace types
-    properties (Constant)
-        AES = 1;
-        SAMPLE = 2;
-        BG = 3;
-        MOTION = 4;
-        NONE = 5;
-    end
-
     methods
         function obj = TraceHandler(outputParser)
             obj.frames = outputParser.frames;
@@ -79,27 +76,38 @@ classdef TraceHandler < handle
             obj.aesTracesRef = outputParser.aesTraces;
             obj.smplTracesRef = outputParser.smplTraces;
             obj.bgTracesRef = outputParser.bgTraces;
+            obj.flBgTracesRef = outputParser.flBgTraces;
             obj.overlapTraces = outputParser.overlapTraces;
             obj.mtnTraces = outputParser.mtnTraces;
-            obj.splitChannel = outputParser.splitChannels;
             obj.channels = outputParser.channels;
             obj.traceZeroed = outputParser.traceZeroed;
             obj.channel = 1;
             obj.fps = 1;
             obj.fIndex = 1;
-            obj.photonCal = 0;
+            obj.photonCal = 1;
+            obj.filtering = false;
+            obj.filterF = 1;
             obj.usingFnc = false;
             obj.usrFnc = [];
             obj.x = (1:obj.frames(obj.fIndex))'/obj.fps;
-            obj.filter = [];
+            obj.filterCoefA = [];
+            obj.filterCoefB = [];
             obj.sbtrBG = ~isempty(obj.bgTracesRef);
             obj.aesNumPx = outputParser.aesNumPx;
             obj.smplNumPx = outputParser.smplNumPx;
             obj.hasAes = ~isempty(obj.aesTracesRef);
             obj.hasSmpl = ~isempty(obj.smplTracesRef);
             obj.hasBg = ~isempty(obj.bgTracesRef);
+            obj.hasFl = ~isempty(obj.flBgTracesRef);
             obj.hasMtn = ~isempty(obj.mtnTraces);
             obj.hasOverlap = ~isempty(obj.overlapTraces);
+            if (obj.hasBg)
+                obj.sbtrBG = Background.Electric;
+            elseif (obj.hasFl)
+                obj.sbtrBG = Background.Fluorescent;
+            else
+                obj.sbtrBG = Background.None;
+            end
 
             obj.yLimAes = cell(obj.channels,1);
             obj.yLimSmpl = cell(obj.channels,1);
@@ -108,6 +116,8 @@ classdef TraceHandler < handle
             obj.aesTraces = cell(obj.channels,1);
             obj.smplTraces = cell(obj.channels,1);
             obj.bgTraces = cell(obj.channels,1);
+            obj.flBgTraces = cell(obj.channels,1);
+            
             for ch=1:obj.channels
                 if (obj.hasAes)
                     obj.numAesTraces(ch) = length(obj.aesTracesRef{1}{ch});
@@ -129,33 +139,27 @@ classdef TraceHandler < handle
             obj.shOver = ~isempty(obj.overlapTraces);
             if (obj.shOver)
                 obj.overlapEdges = cell(obj.numFiles,1);
+                obj.totOverlapEdges = cell(obj.numFiles,1);
                 for fl=1:obj.numFiles
                     obj.overlapEdges{fl} = cell(obj.channels,1);
-                    if (obj.splitChannel)
-                        for ch=1:obj.channels
-                            if (obj.numSmplTraces(ch)>0)
-                                obj.overlapEdges{fl}{ch} = cell(obj.numSmplTraces(ch),1);
-                                for ii=1:obj.numSmplTraces(ch)
-                                    obj.overlapEdges{fl}{ch}{ii} = obj.findEdges(obj.overlapTraces{fl}{ch}(:,ii));
-                                end
+                    temp = ones(obj.frames(fl),1);
+                    for ch=1:obj.channels
+                        temp = temp .* prod(obj.overlapTraces{fl}{ch},2);
+                        if (obj.numSmplTraces(ch)>0)
+                            obj.overlapEdges{fl}{ch} = cell(obj.numSmplTraces(ch),1);
+                            for ii=1:obj.numSmplTraces(ch)
+                                obj.overlapEdges{fl}{ch}{ii} = obj.findEdges(obj.overlapTraces{fl}{ch}(:,ii));
                             end
                         end
-                    else
-                        obj.overlapEdges{fl} = cell(obj.channels,1);
-                        obj.overlapEdges{fl}{1} = cell(obj.numSmplTraces(1),1);
-                        for ii=1:obj.numSmplTraces(1)
-                            obj.overlapEdges{fl}{1}{ii} = obj.findEdges(obj.overlapTraces{fl}{1}(:,ii));
-                        end
-                        
-                        for ch=2:obj.channels
-                            obj.overlapEdges{fl}{ch} = obj.overlapEdges{fl}{1};
-                        end
                     end
+                    obj.totOverlapEdges{fl} = obj.findEdges(temp>0);
                 end
             end
 
             obj.aesNames = outputParser.aesNames;
             obj.smplNames = outputParser.smplNames;
+            obj.ySmplTitle = 'Photons';
+            obj.xTitle = 'Time (s)';
             obj.buildTraces();
         end
 
@@ -194,7 +198,6 @@ classdef TraceHandler < handle
             obj.aesTotTraces = zeros(obj.frames(obj.fIndex),obj.channels);
             obj.smplTotTraces = zeros(obj.frames(obj.fIndex),obj.channels);
             obj.x = (1:obj.frames(obj.fIndex))'/obj.fps;
-            obj.setFilter(obj.filterFwhm);
             obj.buildTraces();
         end
 
@@ -206,22 +209,25 @@ classdef TraceHandler < handle
             end
         end
 
-        function setFilter(obj,fwhm)
-            if (fwhm ~= 0)
-                obj.filterFwhm = fwhm;
+        function setFilter(obj,highF)
+            if ((highF > 0) && ((highF*2/obj.fps)<1))
+                obj.filterF = highF;
                 obj.filtering = true;
-                l = length(obj.x);
-                a = fwhm^2/log(2);
-                f = (linspace(-1,1,l)*obj.fps/2)';
-                obj.filter = exp(-f.^2/a);
-                obj.filter = ifftshift(obj.filter);
+                [obj.filterCoefB,obj.filterCoefA] = butter(12, obj.filterF*2/obj.fps);
             else
                 obj.filtering = false;
             end
         end
 
-        function subtractBG(obj,enable)
-            obj.sbtrBG = (enable && ~isempty(obj.bgTracesRef));
+        function subtractBG(obj,type)
+            if (obj.traceZeroed~=Background.None)
+                return;
+            end
+
+            pass = (((type==Background.Electric) && obj.hasBg)||((type==Background.Fluorescent) && obj.hasFl)||(type==Background.None));
+            if (pass)
+                obj.sbtrBG = type;
+            end
         end
 
         function showOverlap(obj,enable)
@@ -229,109 +235,137 @@ classdef TraceHandler < handle
         end
 
         function setPhotonCal(obj,val)
-            obj.photonCal = val;
+            if (val>0)
+                obj.photonCal = val;
+            end
         end
 
         % validates and changes the user function (fnc is function handle)
-        function status=setUsrFnc(obj,enable,fnc)
+        function status=setUsrFnc(obj,fnc)
             status = false;
             if (obj.hasSmpl)
-                if (enable)
-                    if (~isempty(fnc))
-                        try
-                            ch=1;
-                            while(obj.numSmplTraces(ch)==0)
-                                ch=ch+1;
-                            end
-                            fnc(obj.x,obj.smplTraces{ch}{1});
-                        catch
-                            disp('Function execution error');
-                            return;
+                if (~isempty(fnc))
+                    try
+                        ch=1;
+                        while(obj.numSmplTraces(ch)==0)
+                            ch=ch+1;
                         end
-                        obj.usrFnc = fnc;
-                    elseif (isempty(obj.usrFnc))
+                        fnc(obj.x,obj.smplTraces{ch}{1});
+                    catch
+                        disp('Function execution error');
                         return;
                     end
+                    obj.usrFnc = fnc;
                     obj.usingFnc=true;
                 else
+                    obj.usrFnc = [];
                     obj.usingFnc = false;
                 end
                 status = true;
             end
         end
 
+        function setXTitle(obj,str)
+            if (isempty(str))
+                obj.xTitle = 'Time (s)';
+            else
+                obj.xTitle = str;
+            end
+        end
+
+        function setYTitle(obj,str)
+            if(isempty(str))
+                obj.ySmplTitle = 'Photons';
+            else
+                obj.ySmplTitle = str;
+            end
+        end
+
         %% process traces
         function buildTraces(obj)
-            if (obj.sbtrBG)
+            if (obj.hasAes)
                 for ch=1:obj.channels
-                    if (obj.hasAes)
-                        for ii=1:obj.numAesTraces(ch)
-                            obj.aesTraces{ch}{ii} = obj.aesTracesRef{obj.fIndex}{ch}{ii}(:,1) - obj.bgTracesRef{obj.fIndex}{ch}(:,1);
-                        end
-                    end
-
-                    if (obj.hasSmpl)
-                        for ii=1:obj.numSmplTraces(ch)
-                            obj.smplTraces{ch}{ii} = obj.smplTracesRef{obj.fIndex}{ch}{ii}(:,1) - obj.bgTracesRef{obj.fIndex}{ch}(:,1);
+                    for ii=1:obj.numAesTraces(ch)
+                        if (obj.sbtrBG==Background.None)
+                            obj.aesTraces{ch}{ii} = obj.aesTracesRef{obj.fIndex}{ch}{ii}(:,1);
+                        elseif (obj.sbtrBG==Background.Electric)
+                            obj.aesTraces{ch}{ii} = obj.aesTracesRef{obj.fIndex}{ch}{ii}(:,1)-obj.bgTracesRef{obj.fIndex}{ch}(:,1);
+                        else
+                            obj.aesTraces{ch}{ii} = obj.aesTracesRef{obj.fIndex}{ch}{ii}(:,1)-obj.flBgTracesRef{obj.fIndex}{ch}(:,1);
                         end
                     end
                 end
-            else
+            end
+            
+            if (obj.hasSmpl)
                 for ch=1:obj.channels
-                    if (obj.hasAes)
-                        for ii=1:obj.numAesTraces(ch)
-                            obj.aesTraces{ch}{ii} = obj.aesTracesRef{obj.fIndex}{ch}{ii}(:,1);
-                        end
-                    end
-
-                    if (obj.hasSmpl)
-                        for ii=1:obj.numSmplTraces(ch)
+                    for ii=1:obj.numSmplTraces(ch)
+                        if (obj.sbtrBG==Background.None)
                             obj.smplTraces{ch}{ii} = obj.smplTracesRef{obj.fIndex}{ch}{ii}(:,1);
+                        elseif (obj.sbtrBG==Background.Electric)
+                            obj.smplTraces{ch}{ii} = obj.smplTracesRef{obj.fIndex}{ch}{ii}(:,1)-obj.bgTracesRef{obj.fIndex}{ch}(:,1);
+                        else
+                            obj.smplTraces{ch}{ii} = obj.smplTracesRef{obj.fIndex}{ch}{ii}(:,1)-obj.flBgTracesRef{obj.fIndex}{ch}(:,1);
                         end
                     end
                 end
             end
 
-            if (obj.photonCal ~= 0)
-                for ch=1:obj.channels
-                    if (obj.hasAes)
-                        for ii=1:obj.numAesTraces(ch)
-                            obj.aesTraces{ch}{ii} = obj.aesTraces{ch}{ii} * obj.photonCal * obj.aesNumPx{ch}(ii);
-                        end
-                    end
-
-                    if (obj.hasSmpl)
-                        for ii=1:obj.numSmplTraces(ch)
-                            obj.smplTraces{ch}{ii} = obj.smplTraces{ch}{ii} * obj.photonCal * obj.smplNumPx{ch}(ii);
-                        end
-                    end
-
-                    if (obj.hasBg)
-                        obj.bgTraces{ch} = obj.bgTracesRef{obj.fIndex}{ch}(:,1) * obj.photonCal;
-                    end
-                end
-            elseif (obj.hasBg)
+            if (obj.hasBg)
                 for ch=1:obj.channels
                     obj.bgTraces{ch} = obj.bgTracesRef{obj.fIndex}{ch}(:,1);
                 end
             end
 
+            if (obj.hasFl)
+                for ch=1:obj.channels
+                    obj.flBgTraces{ch} = obj.flBgTracesRef{obj.fIndex}{ch}(:,1);
+                end
+            end
+
+            for ch=1:obj.channels
+                if (obj.hasAes)
+                    for ii=1:obj.numAesTraces(ch)
+                        obj.aesTraces{ch}{ii} = obj.aesTraces{ch}{ii} * obj.photonCal * obj.aesNumPx{ch}(ii);
+                    end
+                end
+
+                if (obj.hasSmpl)
+                    for ii=1:obj.numSmplTraces(ch)
+                        obj.smplTraces{ch}{ii} = obj.smplTraces{ch}{ii} * obj.photonCal * obj.smplNumPx{ch}(ii);
+                    end
+                end
+            end
+
             if (obj.filtering)
+                startingSamp = round(min((2*obj.fps/obj.filterF),(obj.frames(obj.fIndex)/2)));
                 for ch=1:obj.channels
                     if (obj.hasAes)
                         for ii=1:obj.numAesTraces(ch)
-                            obj.aesTraces{ch}{ii} = abs(ifft(fft(obj.aesTraces{ch}{ii}).*obj.filter));
+                            temp = mean(obj.aesTraces{ch}{ii}(1:startingSamp));
+                            obj.aesTraces{ch}{ii} = filter(obj.filterCoefB,obj.filterCoefA,obj.aesTraces{ch}{ii});
+                            obj.aesTraces{ch}{ii}(1:startingSamp) = temp*ones(startingSamp,1);
                         end
                     end
 
                     if (obj.hasSmpl)
                         for ii=1:obj.numSmplTraces(ch)
-                            obj.smplTraces{ch}{ii} = abs(ifft(fft(obj.smplTraces{ch}{ii}).*obj.filter));
+                            temp = mean(obj.smplTraces{ch}{ii}(1:startingSamp));
+                            obj.smplTraces{ch}{ii} = filter(obj.filterCoefB,obj.filterCoefA,obj.smplTraces{ch}{ii});
+                            obj.smplTraces{ch}{ii}(1:startingSamp) = temp*ones(startingSamp,1);
                         end
                     end
 
                     if (obj.hasBg)
-                        obj.bgTraces{ch} = abs(ifft(fft(obj.bgTraces{ch}).*obj.filter));
+                        temp = mean(obj.bgTraces{ch}(1:startingSamp));
+                        obj.bgTraces{ch} = filter(obj.filterCoefB,obj.filterCoefA,obj.bgTraces{ch});
+                        obj.bgTraces{ch}(1:startingSamp) = temp*ones(startingSamp,1);
+                    end
+
+                    if (obj.hasFl)
+                        temp = mean(obj.flBgTraces{ch}(1:startingSamp));
+                        obj.flBgTraces{ch} = filter(obj.filterCoefB,obj.filterCoefA,obj.flBgTraces{ch});
+                        obj.flBgTraces{ch}(1:startingSamp) = temp*ones(startingSamp,1);
                     end
                 end
             end
@@ -344,13 +378,13 @@ classdef TraceHandler < handle
                 end
             end
 
-            obj.aesTotTraces = obj.aesTotTraces * 0;
+            obj.aesTotTraces = obj.aesTotTraces*0;
             obj.smplTotTraces = obj.smplTotTraces*0;
             for ch=1:obj.channels
                 if (obj.hasAes)
                     for ii=1:obj.numAesTraces(ch)
                         obj.yLimAes{ch}(ii,2) = max(obj.aesTraces{ch}{ii});
-                        if (obj.sbtrBG)
+                        if (obj.sbtrBG~=Background.None)
                             obj.yLimAes{ch}(ii,1) = 0;
                         else
                             obj.yLimAes{ch}(ii,1) = min(obj.aesTraces{ch}{ii});
@@ -362,7 +396,7 @@ classdef TraceHandler < handle
                 if (obj.hasSmpl)
                     for ii=1:obj.numSmplTraces(ch)
                         obj.yLimSmpl{ch}(ii,2) = max(obj.smplTraces{ch}{ii});
-                        if (obj.sbtrBG && ~obj.usingFnc)
+                        if ((obj.sbtrBG~=Background.None) && ~obj.usingFnc)
                             obj.yLimSmpl{ch}(ii,1) = 0;
                         else
                             obj.yLimSmpl{ch}(ii,1) = min(obj.smplTraces{ch}{ii});
@@ -375,12 +409,12 @@ classdef TraceHandler < handle
 
         %% plot traces (status==false means no trace was plotted)
         function status = plotTrace(obj, ax, channel, tracetype, index)
-            if (((tracetype==obj.AES)&&~obj.hasAes)||((tracetype==obj.SAMPLE)&&~obj.hasSmpl)||((tracetype==obj.BG)&&~obj.hasBg)||((tracetype==obj.MOTION)&&~obj.hasMtn))
-                tracetype=obj.NONE;
+            if (((tracetype==TraceType.AES)&&~obj.hasAes)||((tracetype==TraceType.Sample)&&~obj.hasSmpl)||((tracetype==TraceType.BG)&&~obj.hasBg)||((tracetype==TraceType.Motion)&&~obj.hasMtn))
+                tracetype=TraceType.None;
             end
 
             switch (tracetype)
-                case (obj.AES)
+                case (TraceType.AES)
                     if (index==0)
                         plot(ax,obj.x,obj.aesTotTraces(:,channel));
                         ymin = sum(obj.yLimAes{channel}(:,1));
@@ -392,17 +426,19 @@ classdef TraceHandler < handle
                         ymax = obj.yLimAes{channel}(index,2);
                         title(ax, obj.aesNames{channel}{index});
                     end
-                    if (obj.photonCal==0)
-                        ylabel(ax,'Mean Pixel Value');
-                    else
-                        ylabel(ax,'Photons')
-                    end
+                    ylabel(ax,'Photons')
                     legend(ax,'off');
-                case (obj.SAMPLE)
+                case (TraceType.Sample)
                     if (index==0)
                         plot(ax,obj.x,obj.smplTotTraces(:,channel));
                         ymin = sum(obj.yLimSmpl{channel}(:,1));
                         ymax = sum(obj.yLimSmpl{channel}(:,2));
+
+                        if (obj.shOver && ~isempty(obj.totOverlapEdges))
+                            for ii=1:size(obj.totOverlapEdges{obj.fIndex},1)
+                                rectangle(ax,'Position',[obj.x(obj.totOverlapEdges{obj.fIndex}(ii,1)),ymin,obj.x(obj.totOverlapEdges{obj.fIndex}(ii,2)),(ymax-ymin)],'FaceColor',[1,0,0,0.75],'LineStyle','none');
+                            end
+                        end
                         title(ax, 'Combined Sample Region');
                     else
                         plot(ax,obj.x,obj.smplTraces{channel}{index});
@@ -411,29 +447,28 @@ classdef TraceHandler < handle
     
                         if (obj.shOver && ~isempty(obj.overlapEdges{obj.fIndex}{channel}{index}))
                             for ii = 1:size(obj.overlapEdges{obj.fIndex}{channel}{index},1)
-                                rectangle(ax,'Position',[obj.x(obj.overlapEdges{obj.fIndex}{channel}{index}(ii,1)),ymin,obj.x(obj.overlapEdges{obj.fIndex}{channel}{index}(ii,2)),(ymax-ymin)],'FaceColor',[1,0,0,0.5],'LineStyle','none');
+                                rectangle(ax,'Position',[obj.x(obj.overlapEdges{obj.fIndex}{channel}{index}(ii,1)),ymin,obj.x(obj.overlapEdges{obj.fIndex}{channel}{index}(ii,2)),(ymax-ymin)],'FaceColor',[1,0,0,0.75],'LineStyle','none');
                             end
                         end
                         title(ax, obj.smplNames{channel}{index});
                     end
-                    if (obj.photonCal==0)
-                        ylabel(ax,'Mean Pixel Value');
-                    else
-                        ylabel(ax,'Photons')
-                    end
+                    ylabel(ax,obj.ySmplTitle)
                     legend(ax,'off');
-                case (obj.BG)
+                case (TraceType.BG)
                     plot(ax,obj.x,obj.bgTraces{channel});
                     ymin = min(obj.bgTraces{channel});
                     ymax = max(obj.bgTraces{channel});
-                    title(ax, 'Background');
-                    if (obj.photonCal==0)
-                        ylabel(ax,'Mean Pixel Value');
-                    else
-                        ylabel(ax, 'Mean Equivalent Photons');
-                    end
+                    title(ax, 'Electric Background');
+                    ylabel(ax, 'Mean Pixel Value');
                     legend(ax,'off');
-                case (obj.MOTION)
+                case (TraceType.Fl)
+                    plot(ax,obj.x,obj.flBgTraces{channel});
+                    ymin = min(obj.flBgTraces{channel});
+                    ymax = max(obj.flBgTraces{channel});
+                    title(ax,'Fluorescent Background');
+                    ylabel(ax, 'Mean Pixel Value');
+                    legend(ax,'off');
+                case (TraceType.Motion)
                     plot(ax,obj.x,obj.mtnTraces{obj.fIndex}(:,1),obj.x,obj.mtnTraces{obj.fIndex}(:,2));
                     title(ax, 'Motion');
                     xlim(ax,[obj.x(1),obj.x(end)]);
@@ -441,7 +476,7 @@ classdef TraceHandler < handle
                     ymax = max(obj.mtnTraces{obj.fIndex},[],'all');
                     legend(ax, 'X', 'Y');
                     ylabel(ax,'Displacement (px)')
-                case (obj.NONE)
+                case (TraceType.None)
                     plot(ax,[0,0], [0,0]);
                     title(ax, 'No Trace');
                     ymin=-1;
@@ -449,8 +484,8 @@ classdef TraceHandler < handle
             end
             xlim(ax,[obj.x(1),obj.x(end)]);
             ylim(ax,[ymin,ymax]);
-            xlabel(ax,'Time (s)');
-            status = (tracetype~=obj.NONE);
+            xlabel(ax,obj.xTitle);
+            status = (tracetype~=TraceType.None);
         end
     end
 

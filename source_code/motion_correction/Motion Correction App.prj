@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.apptool" plugin-version="1.0">
-  <configuration build-checksum="2413791992" file="C:\Users\ScanImage\Desktop\AES_image_tools_v12\motion_correction\code\Motion Correction App.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v12\motion_correction\code" name="Motion Correction App" target="target.mlapps" target-name="Package App">
+  <configuration build-checksum="1162753849" file="C:\Users\ScanImage\Desktop\AES_image_tools_v12\motion_correction\code\Motion Correction App.prj" location="C:\Users\ScanImage\Desktop\AES_image_tools_v12\motion_correction\code" name="Motion Correction App" target="target.mlapps" target-name="Package App">
     <param.appname>Motion Correction App</param.appname>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
@@ -12,8 +12,8 @@
     </param.icons>
     <param.summary>Process videos created using AES.</param.summary>
     <param.description>Handles motion correction and trace extraction for videos made using AES.</param.description>
-    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp54ccb598_4f55_43d9_99fc_fff38976db4e.png</param.screenshot>
-    <param.version>4.5</param.version>
+    <param.screenshot>C:\Users\ScanImage\AppData\Local\Temp\tp1a0da08d_38d4_4841_956f_e12802e87d82.png</param.screenshot>
+    <param.version>4.6</param.version>
     <param.products.name />
     <param.products.id />
     <param.products.version />

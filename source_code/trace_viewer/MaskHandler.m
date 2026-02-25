@@ -29,7 +29,6 @@ classdef MaskHandler < handle
 
     properties (GetAccess = public)
         dim
-        splitCh
         channels
         channel
 
@@ -44,8 +43,7 @@ classdef MaskHandler < handle
     end
 
     methods
-        function obj = MaskHandler(splitChannels, channels, channel, dim)
-            obj.splitCh = splitChannels;
+        function obj = MaskHandler(channels, channel, dim)
             obj.dim = dim;
             obj.channel = channel;
             obj.channels = channels;
@@ -331,79 +329,9 @@ classdef MaskHandler < handle
         %% Other Functions
         % Change color channel
         function setChannel(obj,channel)
-            if (obj.splitCh)
-                obj.channel = channel;
-                obj.roiAesSlct = zeros(obj.numRoiAes(obj.channel),1);
-                obj.roiSmplSlct = zeros(obj.numRoiSmpl(obj.channel),1);
-            else
-                obj.channel = 1;
-            end
-        end
-
-        % attach masks to params struct for processing files
-        function params = attachParams(obj,params)
-            for ch = 1:obj.channel
-                obj.roiAes{ch} = (obj.roiAes{ch} > 0);
-                obj.roiSmpl{ch} = (obj.roiSmpl{ch} > 0);
-            end
-            
-            if (obj.splitCh)
-                fullmask = zeros(size(obj.expMask));
-                tempCh = obj.channel;
-                for ch = 1:obj.channels
-                    obj.setChannel(ch);
-                    obj.buildRoiImage();
-                    fullmask(:,:,ch) = (obj.roiAesImage+obj.roiSmplImage+obj.roiSlctImage+obj.expMask(:,:,ch))>0;
-                end
-                obj.setChannel(tempCh);
-            else
-                fullmask = zeros(size(obj.expMask));
-                obj.buildRoiImage();
-                fullmask(:,:,1) = (obj.roiAesImage+obj.roiSmplImage+obj.roiSlctImage+obj.expMask(:,:,1))>0;
-                for ch=2:obj.channels
-                    obj.roiAes{ch} = obj.roiAes{1};
-                    obj.roiSmpl{ch} = obj.roiSmpl{1};
-                    fullmask(:,:,ch) = fullmask(:,:,1);
-                    obj.roiAesNames{ch} = obj.roiAesNames{1};
-                    obj.roiSmplNames{ch} = obj.roiSmplNames{1};
-                end                
-            end
-            params.roiAes = obj.roiAes;
-            params.roiSmpl = obj.roiSmpl;
-            params.splitChannels = obj.splitCh;
-            params.expMask = fullmask;
-            params.aesNames = obj.roiAesNames;
-            params.smplNames = obj.roiSmplNames;
-            params.dim = obj.dim;
-        end
-    end
-
-    methods (Static)
-        % used to adjust mask position/dialation
-        function adjMask = redrawMask(mask, x, y, mgn)
-            adjMask = circshift(mask,[y,x]);
-            if(x > 0)
-                adjMask(:,1:x) = zeros(size(adjMask,1),x);
-            elseif (x < 0)
-                adjMask(:,(end+x+1):end) = zeros(size(adjMask,1),-x);
-            end
-
-            if(y > 0)
-                adjMask(1:y,:) = zeros(y,size(adjMask,2));
-            elseif (y < 0)
-                adjMask((end+y+1):end,:) = zeros(-y,size(adjMask,2));
-            end
-
-            if (mgn>0)
-                kernel = ones(mgn+1,mgn+1);
-                adjMask = conv2(adjMask,kernel,'same');
-                adjMask = adjMask > 0;
-            elseif (mgn<0)
-                w=1-mgn;
-                kernel = ones(w,w)*1.01/w^2;
-                adjMask = conv2(adjMask,kernel,'same');
-                adjMask = adjMask > 1;
-            end
+            obj.channel = channel;
+            obj.roiAesSlct = zeros(obj.numRoiAes(obj.channel),1);
+            obj.roiSmplSlct = zeros(obj.numRoiSmpl(obj.channel),1);
         end
     end
 end

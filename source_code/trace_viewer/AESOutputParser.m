@@ -11,6 +11,7 @@ classdef AESOutputParser < handle
         aesTraces
         smplTraces
         bgTraces
+        flBgTraces
         overlapTraces
         mtnTraces
         aesNumPx
@@ -43,141 +44,61 @@ classdef AESOutputParser < handle
             obj.status = false;
             useDlg = ~isempty(interruptDialog);
 
-            temp = dir(path);
-            temp = temp([temp.isdir]);
-            obj.basenames = cell((length(temp)-3),1);
-            numFiles = length(obj.basenames);
-            ind = 0;
-            for ii=3:(length(temp)-1)
-                if (~strcmp(temp(ii).name,'masks'))
-                    ind = ind+1;
-                    obj.basenames{ind}=temp(ii).name;
-                end
+            fname = fullfile(path,'settings.json');
+            if (~isfile(fname))
+                return;
             end
 
-            if (ind==length(obj.basenames))
-                if (~strcmp(temp(end).name,'masks'))
-                    disp('Mask folder not found.');
-                    return;
-                end
-            else
-                obj.basenames{numFiles}=temp(length(temp)).name;
-            end
-            
+            fid = fopen(fname);
+            raw = fread(fid,inf);
+            str = char(raw');
+            fclose(fid);
+            aesSettings = jsondecode(str);
+
             maskPath = fullfile(path,'masks');
+            if (~isfolder(maskPath))
+                return;
+            end
+
+            obj.basenames = aesSettings.Videos;
+            numFiles = length(obj.basenames);
 
             if (~exist(strcat(path,filesep,obj.basenames{1},filesep,'bin_files'),'dir'))
                 disp('No bin folder found.');
                 return;
             end
 
-            %% determine if split channel, number of channels, get names
-            hasAES = false;
-            hasSmpl = false;
-            obj.channels = 1;
-            obj.splitChannels = false;
-            if (useDlg)
-                interruptDialog.Title = "Parsing file structure...";
-            end
-            if (exist(fullfile(maskPath,'channel_1'),'dir'))
-                obj.splitChannels = true;
-                while (exist(fullfile(maskPath,strcat('channel_',num2str(obj.channels+1))),'dir'))
-                    obj.channels = obj.channels + 1;
-                end
-                if (exist(strcat(maskPath,filesep,'channel_1',filesep,'AES'),'dir'))
-                    hasAES = true;
-                    obj.aesNames = cell(obj.channels,1);
-                    for ch=1:obj.channels
-                        obj.aesNames{ch} = obj.getFileList(strcat(maskPath,filesep,'channel_',num2str(ch),filesep,'AES'),'*.tif');
-                    end
-                end
-
-                tempFile = strcat(path,filesep,obj.basenames{1},filesep,'bin_files',filesep,obj.basenames{1},'_roi_index.txt');
-                if (exist(tempFile,'file'))
-                    hasSmpl = true;
-                    obj.smplNames = obj.readRoiIndex(tempFile,true,obj.channels);
-                elseif (exist(strcat(maskPath,filesep,'channel_1',filesep,'sample'),'dir'))
-                    hasSmpl = true;
-                    obj.smplNames = cell(obj.channels,1);
-                    for ch=1:obj.channels
-                        obj.smplNames{ch} = obj.getFileList(strcat(maskPath,filesep,'channel_',num2str(ch),filesep,'sample'),'*.tif');
-                    end
-                end
-
-                if (hasAES)
-                    ch=1;
-                    while(isempty(obj.aesNames{ch}))
-                        ch=ch+1;
-                    end
-                    tempTiff = double(imread(strcat(maskPath,filesep,'channel_',num2str(ch),filesep,'AES',filesep,obj.aesNames{ch}{1},'.tif'),1));
-                    obj.dimension = [size(tempTiff,1),size(tempTiff,2)];
-                elseif (hasSmpl)
-                    ch=1;
-                    while(isempty(obj.smplNames{ch}))
-                        ch=ch+1;
-                    end
-                    tempTiff = double(imread(strcat(maskPath,filesep,'channel_',num2str(ch),filesep,'sample',filesep,obj.smplNames{ch}{1},'.tif'),1));
-                    obj.dimension = [size(tempTiff,1),size(tempTiff,2)];
-                end
+            %% unpack json file
+            hasAesTraces = aesSettings.Trace_Extraction.aes;
+            hasSmplTraces = aesSettings.Trace_Extraction.sample;
+            hasBgTraces = aesSettings.Trace_Extraction.electrical_bg;
+            hasFlBgTraces = aesSettings.Trace_Extraction.fluorescent_bg;
+            hasMtnTraces = aesSettings.Trace_Extraction.displacement;
+            hasOverlapTraces = aesSettings.Trace_Extraction.in_bounds;
+            temp = aesSettings.Trace_Extraction.background_subtracted;
+            if (strcmp(temp,'electrical background'))
+                obj.traceZeroed = Background.Electric;
+            elseif (strcmp(temp,'fluorescent background'))
+                obj.traceZeroed = Background.Fluorescent;
             else
-                aesMaskPath = strcat(maskPath,filesep,'AES');
-                if (exist(aesMaskPath,'dir'))
-                    hasAES = true;
-                    obj.aesNames = obj.getFileList(aesMaskPath,'*.tif');
-                end
+                obj.traceZeroed = Background.None;
+            end
+            
+            obj.channels = aesSettings.Stack_Properties.channels;
+            obj.dimension = [aesSettings.Stack_Properties.dimensions.y,aesSettings.Stack_Properties.dimensions.x];
+            
+            % volume not currently implemented
+            if (aesSettings.Stack_Properties.slices>1)
+                return;
+            end
 
-                tempFile = strcat(path,filesep,obj.basenames{1},filesep,'bin_files',filesep,obj.basenames{1},'_roi_index.txt');
-                if (exist(tempFile,'file'))
-                    hasSmpl = true;
-                    obj.smplNames = obj.readRoiIndex(tempFile,false,0);
-                elseif (exist(fullfile(maskPath,'sample'),'dir'))
-                    hasSmpl = true;
-                    obj.smplNames = obj.getFileList(fullfile(maskPath,'sample'),'*.tif');
-                end
-
-                tempFile = strcat(path,filesep,obj.basenames{1},filesep,'bin_files');
-                obj.channels = obj.checkBinChannels(strcat(tempFile,filesep,obj.basenames{1},'_bg_mean'));
-                if (obj.channels == 0)
-                    if (exist(strcat(tempFile,filesep,'aes_roi_traces'),'dir'))
-                        obj.channels = obj.checkBinChannels(strcat(tempFile,filesep,'aes_roi_traces',filesep,obj.basenames{1},'_',obj.aesNames{1}));
-                        if (obj.channels==0)
-                            obj.channels = obj.checkBinChannels(strcat(tempFile,filesep,'aes_roi_traces',filesep,obj.basenames{1},'_',obj.aesNames{1},'_zeroed'));
-                        end
-                    elseif (exist(strcat(tempFile,filesep,'smpl_roi_traces'),'dir'))
-                        obj.channels = obj.checkBinChannels(strcat(tempFile,filesep,'smpl_roi_traces',filesep,obj.basenames{1},'_',obj.smplNames{1}));
-                        if (obj.channels==0)
-                            obj.channels = obj.checkBinChannels(strcat(tempFile,filesep,'smpl_roi_traces',filesep,obj.basenames{1},'_',obj.smplNames{1},'_zeroed'));
-                        end
-                    end
-                    if (obj.channels==0)
-                        disp('no meaningful traces found.');
-                        return;
-                    end
-                end
-                
-                if (hasAES)
-                    tempTiff = double(imread(strcat(maskPath,filesep,'AES',filesep,obj.aesNames{1},'.tif'),1));
-                    obj.dimension = [size(tempTiff,1),size(tempTiff,2)];
-
-                    temp = obj.aesNames;
-                    obj.aesNames = cell(obj.channels,1);
-                    for ch = 1:obj.channels
-                        obj.aesNames{ch} = temp;
-                    end
-                end
-
-                if (hasSmpl)
-                    if (isempty(obj.dimension))
-                        tempTiff = double(imread(strcat(maskPath,filesep,'sample',filesep,obj.smplNames{1},'.tif'),1));
-                        obj.dimension = [size(tempTiff,1),size(tempTiff,2)];
-                    end
-
-                    temp = obj.smplNames;
-                    obj.smplNames = cell(obj.channels,1);
-                    for ch = 1:obj.channels
-                        obj.smplNames{ch} = temp;
-                    end
-                end
+            obj.aesNames = cell(obj.channels,1);
+            obj.smplNames = cell(obj.channels,1);
+            for ch = 1:obj.channels
+                tempNames = aesSettings.ROIs.aes_names.(strcat('slice_1_channel_',num2str(ch)));
+                obj.aesNames{ch} = split(tempNames,',');
+                tempNames = aesSettings.ROIs.smpl_names.(strcat('slice_1_channel_',num2str(ch)));
+                obj.smplNames{ch} = split(tempNames,',');
             end
 
             %% Process Trace data
@@ -188,98 +109,38 @@ classdef AESOutputParser < handle
                 interruptDialog.Indeterminate = "off";
                 interruptDialog.Value = 0;
             end
-            binPath = strcat(path,filesep,obj.basenames{1},filesep,'bin_files');
-            hasAesTraces = false;
-            hasSmplTraces = false;
-            hasBgTraces = false;
-            hasMtnTraces = false;
-            hasOverlapTraces = false;
-            obj.traceZeroed = false;
-            if (exist(strcat(binPath,filesep,'aes_roi_traces'),'dir'))
-                obj.aesTraces = cell(numFiles,1);
-                hasAesTraces = true;
-            end
-
-            if (exist(strcat(binPath,filesep,'smpl_roi_traces'),'dir'))
-                obj.smplTraces = cell(numFiles,1);
-                hasSmplTraces = true;
-            end
-
-            if (exist(strcat(binPath,filesep,obj.basenames{1},'_displacement.bin'),'file'))
-                obj.mtnTraces = cell(numFiles,1);
-                hasMtnTraces = true;
-            end
-
-            if (obj.channels==1)
-                if (exist(strcat(binPath,filesep,obj.basenames{1},'_bg_mean.bin'),'file'))
-                    obj.bgTraces = cell(numFiles,1);
-                    hasBgTraces = true;
-                end
-            else
-                if (exist(strcat(binPath,filesep,obj.basenames{1},'_bg_mean_ch1.bin'),'file'))
-                    obj.bgTraces = cell(numFiles,1);
-                    hasBgTraces = true;
-                end
-            end
-
-            if (obj.splitChannels)
-                if (exist(strcat(binPath,filesep,obj.basenames{1},'_in_bounds_ch1.bin'),'file'))
-                    obj.overlapTraces = cell(numFiles,1);
-                    hasOverlapTraces = true;
-                end
-            else
-                if (exist(strcat(binPath,filesep,obj.basenames{1},'_in_bounds.bin'),'file'))
-                    obj.overlapTraces = cell(numFiles,1);
-                    hasOverlapTraces = true;
-                end
-            end
-
-            numTotTraces = hasMtnTraces+hasBgTraces*obj.channels+hasOverlapTraces*((obj.channels-1)*obj.splitChannels+1);
+            
+            numTotTraces = hasMtnTraces+(hasBgTraces+hasFlBgTraces+hasOverlapTraces)*obj.channels;
             if (hasAesTraces)
+                obj.aesTraces = cell(numFiles,1);
                 for ch=1:obj.channels
                     numTotTraces = numTotTraces + length(obj.aesNames{ch});
                 end
             end
 
             if (hasSmplTraces)
+                obj.smplTraces = cell(numFiles,1);
                 for ch=1:obj.channels
                     numTotTraces = numTotTraces + length(obj.smplNames{ch});
                 end
             end
+
+            if (hasMtnTraces)
+                obj.mtnTraces = cell(numFiles,1);
+            end
+
+            if (hasBgTraces)
+                obj.bgTraces = cell(numFiles,1);
+            end
+
+            if (hasOverlapTraces)
+                obj.overlapTraces = cell(numFiles,1);
+            end
             numTotTraces = numTotTraces * numFiles;
             numFinTraces = 0;
 
-            if (hasSmplTraces)
-                if (obj.channels==1)
-                    if (exist(strcat(binPath,filesep,'smpl_roi_traces',filesep,obj.basenames{1},'_',obj.smplNames{ch}{1},'_zeroed.bin'),'file'))
-                        obj.traceZeroed = true;
-                    end
-                else
-                    ch=1;
-                    while(isempty(obj.smplNames{ch}))
-                        ch=ch+1;
-                    end
-                    if (exist(strcat(binPath,filesep,'smpl_roi_traces',filesep,obj.basenames{1},'_',obj.smplNames{ch}{1},'_zeroed_ch1.bin'),'file'))
-                        obj.traceZeroed = true;
-                    end
-                end
-            elseif (hasAesTraces)
-                if (obj.channels==1)
-                    if (exist(strcat(binPath,filesep,'aes_roi_traces',filesep,obj.basenames{1},'_',obj.aesNames{ch}{1},'_zeroed.bin'),'file'))
-                        obj.traceZeroed = true;
-                    end
-                else
-                    ch=1;
-                    while(isempty(obj.smplNames{ch}))
-                        ch=ch+1;
-                    end
-                    if (exist(strcat(binPath,filesep,'aes_roi_traces',filesep,obj.basenames{1},'_',obj.aesNames{ch}{1},'_zeroed_ch1.bin'),'file'))
-                        obj.traceZeroed = true;
-                    end
-                end
-            end
-
             % read in data
+            multiChannel = obj.channels>1;
             for fl=1:numFiles
                 if (useDlg)
                     interruptDialog.Message = strcat('File (',num2str(fl),'/',num2str(numFiles),')');
@@ -287,18 +148,39 @@ classdef AESOutputParser < handle
 
                 binPath = strcat(path,filesep,obj.basenames{fl},filesep,'bin_files');
                 if (hasBgTraces)
-                    if (obj.channels == 1)
-                        obj.bgTraces{fl} = cell(1,1);
-                        obj.bgTraces{fl}{1} = AESFile.readFullFile(strcat(binPath,filesep,obj.basenames{fl},'_bg_mean.bin'));
+                    obj.bgTraces{fl} = cell(obj.channels,1);
+                    tempName = strcat(binPath,filesep,obj.basenames{fl},'_bg_mean');
+                    for ch=1:obj.channels
+                        fname = tempName;
+                        if (multiChannel)
+                            fname = strcat(fname,'_ch',num2str(ch));
+                        end
+                        fname = strcat(fname,'.bin');
+                        obj.bgTraces{fl}{ch} = AESFile.readFullFile(fname);
                         numFinTraces = numFinTraces+1;
-                    else
-                        tempName = strcat(binPath,filesep,obj.basenames{fl},'_bg_mean_ch');
-                        obj.bgTraces{fl} = cell(obj.channels,1);
-                        for ch=1:obj.channels
-                            obj.bgTraces{fl}{ch} = AESFile.readFullFile(strcat(tempName,num2str(ch),'.bin'));
-                            numFinTraces = numFinTraces+1;
+                    end
+
+                    if (useDlg)
+                        interruptDialog.Value = numFinTraces/numTotTraces;
+                        if (interruptDialog.CancelRequested)
+                            return;
                         end
                     end
+                end
+
+                if (hasFlBgTraces)
+                    obj.flBgTraces{fl} = cell(obj.channels,1);
+                    tempName = strcat(binPath,filesep,obj.basenames{fl},'_flbg_mean');
+                    for ch=1:obj.channels
+                        fname = tempName;
+                        if (multiChannel)
+                            fname = strcat(fname,'_ch',num2str(ch));
+                        end
+                        fname = strcat(fname,'.bin');
+                        obj.flBgTraces{fl}{ch} = AESFile.readFullFile(fname);
+                        numFinTraces = numFinTraces+1;
+                    end
+
                     if (useDlg)
                         interruptDialog.Value = numFinTraces/numTotTraces;
                         if (interruptDialog.CancelRequested)
@@ -314,21 +196,20 @@ classdef AESOutputParser < handle
                         obj.aesTraces{fl}{ch} = cell(numTraces,1);
                         for ii=1:numTraces
                             fname = strcat(binPath,filesep,'aes_roi_traces',filesep,obj.basenames{fl},'_',obj.aesNames{ch}{ii});
-                            if (obj.traceZeroed)
+                            if (obj.traceZeroed~=Background.None)
                                 fname = strcat(fname,'_zeroed');
                             end
 
-                            if (obj.channels==1)
-                                fname = strcat(fname,'.bin');
-                            else
-                                fname = strcat(fname,'_ch',num2str(ch),'.bin');
+                            if (multiChannel)
+                                fname = strcat(fname,'_ch',num2str(ch));
                             end
+                            fname = strcat(fname,'.bin');
                             temp = AESFile.readFullFile(fname);
-
-                            if (hasBgTraces && obj.traceZeroed)
-                                obj.aesTraces{fl}{ch}{ii} = [(mean(temp,2)-obj.bgTraces{fl}{ch}(:,1)),std(temp,0,2)];
-                            else
-                                obj.aesTraces{fl}{ch}{ii} = [mean(temp,2),std(temp,0,2)];
+                            obj.aesTraces{fl}{ch}{ii} = [mean(temp,2),std(temp,0,2)];
+                            if ((obj.traceZeroed==Background.Fluorescent)&&hasFlBgTraces)
+                                obj.aesTraces{fl}{ch}{ii}(:,1) = obj.aesTraces{fl}{ch}{ii}(:,1) + obj.flBgTraces{fl}{ch}(:,1);
+                            elseif ((obj.traceZeroed==Background.Electric)&&hasBgTraces)
+                                obj.aesTraces{fl}{ch}{ii}(:,1) = obj.aesTraces{fl}{ch}{ii}(:,1) + obj.bgTraces{fl}{ch}(:,1);
                             end
                             numFinTraces = numFinTraces+1;
                             if (useDlg)
@@ -348,21 +229,20 @@ classdef AESOutputParser < handle
                         obj.smplTraces{fl}{ch} = cell(numTraces,1);
                         for ii=1:numTraces
                             fname = strcat(binPath,filesep,'smpl_roi_traces',filesep,obj.basenames{fl},'_',obj.smplNames{ch}{ii});
-                            if (obj.traceZeroed)
+                            if (obj.traceZeroed~=Background.None)
                                 fname = strcat(fname,'_zeroed');
                             end
 
-                            if (obj.channels==1)
-                                fname = strcat(fname,'.bin');
-                            else
-                                fname = strcat(fname,'_ch',num2str(ch),'.bin');
+                            if (multiChannel)
+                                fname = strcat(fname,'_ch',num2str(ch));
                             end
+                            fname = strcat(fname,'.bin');
                             temp = AESFile.readFullFile(fname);
-
-                            if (hasBgTraces&&obj.traceZeroed)
-                                obj.smplTraces{fl}{ch}{ii} = [(mean(temp,2)-obj.bgTraces{fl}{ch}(:,1)),std(temp,0,2)];
-                            else
-                                obj.smplTraces{fl}{ch}{ii} = [mean(temp,2),std(temp,0,2)];
+                            obj.smplTraces{fl}{ch}{ii} = [mean(temp,2),std(temp,0,2)];
+                            if ((obj.traceZeroed==Background.Fluorescent)&&hasFlBgTraces)
+                                obj.smplTraces{fl}{ch}{ii}(:,1) = obj.smplTraces{fl}{ch}{ii}(:,1) + obj.flBgTraces{fl}{ch}(:,1);
+                            elseif ((obj.traceZeroed==Background.Electric)&&hasBgTraces)
+                                obj.smplTraces{fl}{ch}{ii}(:,1) = obj.smplTraces{fl}{ch}{ii}(:,1) + obj.bgTraces{fl}{ch}(:,1);
                             end
                             numFinTraces = numFinTraces+1;
                             if (useDlg)
@@ -387,20 +267,17 @@ classdef AESOutputParser < handle
                 end
     
                 if (hasOverlapTraces)
-                    if (obj.splitChannels)
-                        obj.overlapTraces{fl} = cell(obj.channels,1);
-                        for ch=1:obj.channels
-                            obj.overlapTraces{fl}{ch} = AESFile.readFullFile(fullfile(binPath,strcat(obj.basenames{fl},'_in_bounds_ch',num2str(ch),'.bin')));
-                            numFinTraces = numFinTraces+1;
+                    obj.overlapTraces{fl} = cell(obj.channels,1);
+                    for ch=1:obj.channels
+                        fname = strcat(binPath,filesep,obj.basenames{fl},'_in_bounds');
+                        if (multiChannel)
+                            fname = strcat(fname,'_ch',num2str(ch));
                         end
-                    else
-                        obj.overlapTraces{fl} = cell(obj.channels,1);
-                        temp = AESFile.readFullFile(strcat(binPath,filesep,obj.basenames{fl},'_in_bounds.bin'));
-                        for ch=1:obj.channels
-                            obj.overlapTraces{fl}{ch} = temp;
-                            numFinTraces = numFinTraces+1;
-                        end
+                        fname = strcat(fname,'.bin');
+                        obj.overlapTraces{fl}{ch} = AESFile.readFullFile(fname);
+                        numFinTraces = numFinTraces+1;
                     end
+
                     if (useDlg)
                         interruptDialog.Value = numFinTraces/numTotTraces;
                         if (interruptDialog.CancelRequested)
@@ -409,7 +286,9 @@ classdef AESOutputParser < handle
                     end
                 end
             end
-            obj.traceZeroed = obj.traceZeroed && ~hasBgTraces;
+            if (((obj.traceZeroed==Background.Fluorescent)&&hasFlBgTraces)||((obj.traceZeroed==Background.Electric)&&hasBgTraces))
+                obj.traceZeroed = Background.None;
+            end
 
             %% get video information
             % read in projection
@@ -419,56 +298,42 @@ classdef AESOutputParser < handle
                 interruptDialog.Cancelable = "off";
                 interruptDialog.Indeterminate = "on";
             end
-            tempName = strcat(path,filesep,obj.basenames{1},filesep,obj.basenames{1});
-            projAppend = [];
-            if (exist(strcat(tempName,'_motion_corrected_projection.tif'),'file'))
-                projAppend = '_motion_corrected_projection.tif';
-            elseif (exist(strcat(tempName,'_projection.tif'),'file'))
-                projAppend = '_projection.tif';
-            end
 
-            vidAppend = [];
-            if (exist(strcat(tempName,'_motion_corrected.tif'),'file'))
-                vidAppend = '_motion_corrected.tif';
-            elseif (exist(strcat(tempName,'_compressed.tif'),'file'))
-                vidAppend = '_compressed.tif';
-            elseif (exist(strcat(tempName,'_processed.tif'),'file'))
-                vidAppend = '_processed.tif';
-            end
+            if (aesSettings.Video_Properties.saved_video)
+                changed = false;
+                if (aesSettings.Motion_Correction.motion_corrected)
+                    changed = true;
+                    vidAppend = '_motion_corrected';
+                elseif (aesSettings.Video_Properties.compressed)
+                    changed = true;
+                    vidAppend = '_compressed';
+                end
 
-            if (~isempty(vidAppend))
+                temp = aesSettings.Video_Properties.background_subtracted;
+                if (~strcmp(temp,'none'))
+                    changed = true;
+                    vidAppend = strcat(vidAppend,'_zeroed');
+                end
+
+                if (~changed)
+                    vidAppend = 'processed';
+                end
+
+                vidAppend = strcat(vidAppend,'.tif');
                 obj.vidFiles = cell(numFiles,1);
-                for fl=1:numFiles                        
+                for fl=1:numFiles
                     obj.vidFiles{fl} = strcat(path,filesep,obj.basenames{fl},filesep,obj.basenames{fl},vidAppend);
                 end
             end
 
-            if (isempty(projAppend))
-                if (~isempty(vidAppend))
-                    if (isempty(obj.dimension))
-                        tempTiff = double(imread(strcat(tempName,vidAppend),1));
-                        obj.dimension = [size(tempTiff,1),size(tempTiff,2)];
-                    end
-
-                    obj.projImages = zeros(obj.dimension(1),obj.dimension(2),obj.channels,length(obj.basenames));
-                    params.bidirectional = false;
-                    params.channels = obj.channels;
-                    stackManager = StackTracker(params);
-                    for fl=1:numFiles
-                        obj.projImages(:,:,:,fl) = stackManager.buildProjection(obj.vidFiles{fl},3000,interruptDialog);
-                    end
+            obj.projImages = zeros(obj.dimension(1),obj.dimension(2),obj.channels,length(obj.basenames));
+            if (aesSettings.Video_Properties.saved_projection)
+                if (aesSettings.Motion_Correction.motion_corrected)
+                    projAppend = '_motion_corrected_projection.tif';
                 else
-                    if (isempty(obj.dimension))
-                        disp('Not enough information.');
-                        return;
-                    end
+                    projAppend = '_projection.tif';
                 end
-            else
-                if (isempty(obj.dimension))
-                    tempTiff = double(imread(strcat(tempName,projAppend),1));
-                    obj.dimension = [size(tempTiff,1),size(tempTiff,2)];
-                end
-                obj.projImages = zeros(obj.dimension(1),obj.dimension(2),obj.channels,length(obj.basenames));
+
                 for fl=1:length(obj.basenames)
                     tempFile = strcat(path,filesep,obj.basenames{fl},filesep,obj.basenames{fl},projAppend);
                     for ch=1:obj.channels
@@ -477,65 +342,51 @@ classdef AESOutputParser < handle
                         obj.projImages(:,:,ch,fl) = (tempTiff-minVal) / (max(tempTiff,[],'all')-minVal);
                     end
                 end
+            elseif (aesSettings.Video_Properties.saved_video)
+                params.bidirectional = false;
+                params.channels = obj.channels;
+                stackManager = StackTracker(params);
+                for fl=1:numFiles
+                    obj.projImages(:,:,:,fl) = stackManager.buildProjection(obj.vidFiles{fl},3000,interruptDialog);
+                    for ch=1:obj.channels
+                        tempTiff = obj.projImages(:,:,ch,fl);
+                        minVal = min(tempTiff,[],'all');
+                        obj.projImages(:,:,ch,fl) = (tempTiff-minVal) / (max(tempTiff,[],'all')-minVal);
+                    end
+                end
             end
 
             %% read in masks
-            obj.maskHandler = MaskHandler(obj.splitChannels,obj.channels,1,obj.dimension);
-            if (obj.splitChannels)
-                if (hasAES)
-                    for ch=1:obj.channels
-                        obj.maskHandler.setChannel(ch);
-                        for ii=1:length(obj.aesNames{ch})
-                            tempTiff = double(imread(strcat(maskPath,filesep,'channel_',num2str(ch),filesep,'AES',filesep,obj.aesNames{ch}{ii},'.tif'),1));
-                            obj.maskHandler.addRoiAes(obj.aesNames{ch}{ii},(tempTiff>0));
-                        end
+            obj.maskHandler = MaskHandler(obj.channels,1,obj.dimension);
+            for ch=1:obj.channels
+                obj.maskHandler.setChannel(ch);
+                for ii=1:length(obj.aesNames{ch})
+                    fname = strcat(maskPath,filesep,'AES');
+                    if (multiChannel)
+                        fname = strcat(fname,filesep,'channel_',num2str(ch));
                     end
+                    fname = strcat(fname,filesep,obj.aesNames{ch}{ii},'.tif');
+                    tempTiff = double(imread(fname,1));
+                    obj.maskHandler.addRoiAes(obj.aesNames{ch}{ii},(tempTiff>0));
                 end
 
-                if (hasSmpl)
-                    for ch=1:obj.channels
-                        obj.maskHandler.setChannel(ch);
-                        for ii=1:length(obj.smplNames{ch})
-                            tempTiff = double(imread(strcat(maskPath,filesep,'channel_',num2str(ch),filesep,'sample',filesep,obj.smplNames{ch}{ii},'.tif'),1));
-                            obj.maskHandler.addRoiSmpl(obj.smplNames{ch}{ii},(tempTiff>0));
-                        end
+                for ii=1:length(obj.smplNames{ch})
+                    fname = strcat(maskPath,filesep,'sample');
+                    if (multiChannel)
+                        fname = strcat(fname,filesep,'channel_',num2str(ch));
                     end
+                    fname = strcat(fname,filesep,obj.smplNames{ch}{ii},'.tif');
+                    tempTiff = double(imread(fname,1));
+                    obj.maskHandler.addRoiSmpl(obj.smplNames{ch}{ii},(tempTiff>0));
                 end
 
-                for ch=1:obj.channels
-                    tempName = strcat(maskPath,filesep,'channel_',num2str(ch),filesep,'exp_mask.tif');
-                    obj.maskHandler.setChannel(ch);
-                    if (exist(tempName,'file'))
-                        tempTiff = double(imread(tempName,1));
-                        obj.maskHandler.setExpMask(tempTiff>0);
-                    else
-                        temp = obj.maskHandler.getRoiAes();
-                        obj.maskHandler.setExpMask((sum(temp,3)>0));
-                    end
+                fname = strcat(maskPath,filesep,'exposure',filesep,'exp_mask');
+                if (multiChannel)
+                    fname = strcat(fname,'_ch',num2str(ch));
                 end
-            else
-                if (hasAES)
-                    for ii=1:length(obj.aesNames{1})
-                        tempTiff = double(imread(strcat(maskPath,filesep,'AES',filesep,obj.aesNames{1}{ii},'.tif'),1));
-                        obj.maskHandler.addRoiAes(obj.aesNames{1}{ii},(tempTiff>0));
-                    end
-                end
-
-                if (hasSmpl)
-                    for ii=1:length(obj.smplNames{1})
-                        tempTiff = double(imread(strcat(maskPath,filesep,'sample',filesep,obj.smplNames{1}{ii},'.tif'),1));
-                        obj.maskHandler.addRoiSmpl(obj.smplNames{1}{ii},(tempTiff>0));
-                    end
-                end
-
-                tempName = strcat(maskPath,filesep,'exp_mask.tif');
-                if (exist(tempName,'file'))
-                    tempTiff = double(imread(tempName,1));
-                    obj.maskHandler.setExpMask((tempTiff>0));
-                else
-                    temp = obj.maskHandler.getRoiAes();
-                    obj.maskHandler.setExpMask((sum(temp,3)>0));
-                end
+                fname = strcat(fname,'.tif');
+                tempTiff = double(imread(fname,1));
+                obj.maskHandler.setExpMask((tempTiff>0));
             end
 
             if (hasAesTraces)

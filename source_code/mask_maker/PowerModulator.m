@@ -775,15 +775,15 @@ classdef PowerModulator < handle
             obj.calcAllSliceTrans();
 
             if (~isempty(obj.roiUI))
-                obj.roiUI.updateMpOrder();
+                obj.roiUI.updateMpOrder(val);
             end
 
             if (~isempty(obj.sliceUI))
-                obj.sliceUI.updateMpOrder();
+                obj.sliceUI.updateMpOrder(val);
             end
 
             if (~isempty(obj.fovUI))
-                obj.sliceUI.updateMpOrder();
+                obj.fovUI.updateMpOrder(val);
             end
         end   
     end

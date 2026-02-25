@@ -35,7 +35,6 @@ classdef MaskHandler < handle
 
     properties (GetAccess = public)
         dim
-        splitCh
         channels
         channel
         slices
@@ -54,7 +53,6 @@ classdef MaskHandler < handle
 
     methods
         function obj = MaskHandler(params)
-            obj.splitCh = params.splitChannels;
             obj.dim = params.dim;
             obj.channel = params.mainChannel;
             obj.channels = params.channels;
@@ -392,9 +390,7 @@ classdef MaskHandler < handle
         %% Other Functions
         % Change color channel
         function setChannel(obj,slice,channel)
-            if (obj.splitCh)
-                obj.channel = channel;
-            end
+            obj.channel = channel;
             obj.slice = slice;
             obj.roiAesSlct = zeros(obj.numRoiAes(obj.slice,obj.channel),1);
             obj.roiSmplSlct = zeros(obj.numRoiSmpl(obj.slice,obj.channel),1);  
@@ -409,35 +405,17 @@ classdef MaskHandler < handle
                 end
             end
             
-            if (obj.splitCh)
-                fullmask = zeros(size(obj.expMask));
-                tempCh = obj.channel;
-                tempSl = obj.slice;
-                for sl=1:obj.slices
-                    for ch = 1:obj.channels
-                        obj.setChannel(sl,ch);
-                        obj.buildRoiImage();
-                        fullmask(:,:,sl,ch) = (obj.roiAesImage+obj.roiSmplImage+obj.roiSlctImage+obj.expMask(:,:,sl,ch))>0;
-                    end
-                end
-                obj.setChannel(tempSl,tempCh);
-            else
-                fullmask = zeros(size(obj.expMask));
-                tempSl = obj.slice;
-                for sl=1:obj.slices
-                    obj.setChannel(sl,1);
+            fullmask = zeros(size(obj.expMask));
+            tempCh = obj.channel;
+            tempSl = obj.slice;
+            for sl=1:obj.slices
+                for ch = 1:obj.channels
+                    obj.setChannel(sl,ch);
                     obj.buildRoiImage();
-                    fullmask(:,:,sl,1) = (obj.roiAesImage+obj.roiSmplImage+obj.roiSlctImage+obj.expMask(:,:,sl,1))>0;
-                    for ch=2:obj.channels
-                        obj.roiAes{sl,ch} = obj.roiAes{sl,1};
-                        obj.roiSmpl{sl,ch} = obj.roiSmpl{sl,1};
-                        fullmask(:,:,sl,ch) = fullmask(:,:,sl,1);
-                        obj.roiAesNames{sl,ch} = obj.roiAesNames{sl,1};
-                        obj.roiSmplNames{sl,ch} = obj.roiSmplNames{sl,1};
-                    end      
+                    fullmask(:,:,sl,ch) = (obj.roiAesImage+obj.roiSmplImage+obj.roiSlctImage+obj.expMask(:,:,sl,ch))>0;
                 end
-                obj.setChannel(tempSl,1);
             end
+            obj.setChannel(tempSl,tempCh);
             
             if (params.reslice && (~isempty(reslicer)))
                 params.roiAes = reslicer.mapCells(obj.roiAes);
@@ -476,7 +454,6 @@ classdef MaskHandler < handle
                     params.expMask((end-params.bidiShift+1):end,:,:,:) = ones(params.bidiShift,size(params.expMask,2),size(params.expMask,3),size(params.expMask,4))>0;
                 end
             end
-            params.splitChannels = obj.splitCh;
             params.dim = obj.dim;
         end
 
@@ -501,7 +478,7 @@ classdef MaskHandler < handle
             
             if (tempChannels>0)
                 if (tempSlices>0)
-                    targetCh = min((obj.channels*obj.splitCh+(1-obj.splitCh)),tempChannels);
+                    targetCh = min(obj.channels,tempChannels);
                     targetSl = min(obj.slices,tempSlices);
                     currentSlice = obj.slice;
                     currentChannel = obj.channel;
@@ -514,7 +491,7 @@ classdef MaskHandler < handle
                     end
                     obj.setChannel(currentSlice,currentChannel);
                 else
-                    targetCh = min((obj.channels*obj.splitCh+(1-obj.splitCh)),tempChannels);
+                    targetCh = min(obj.channels,tempChannels);
                     currentChannel = obj.channel;
                     for ch=1:targetCh
                         obj.setChannel(obj.slice,ch);
@@ -631,11 +608,11 @@ classdef MaskHandler < handle
             expPath = fullfile(maskPath,'exposure');
 
             tempSlices = size(params.roiAes,1);
-            tempChannels = size(params.roiAes,2)*params.splitChannels + (1-params.splitChannels);
+            tempChannels = size(params.roiAes,2);
             multiSlice = tempSlices > 1;
             multiChannel = tempChannels > 1;
             for ch=1:tempChannels
-                if (params.splitChannels)
+                if (multiChannel)
                     chFolder = strcat('channel_',num2str(ch));
                     [status, msg] = mkdir(aesPath,chFolder);
                     if (~status)

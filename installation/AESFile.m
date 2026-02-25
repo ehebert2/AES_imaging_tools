@@ -124,7 +124,15 @@ classdef AESFile < handle
         % depth and signed the same throughout
         function writer = getWriter(filepath,cols,frames,bits,signed)
             writer = fopen(filepath,'w');
+            
+            % allocate space
+            fSize = 64 + bits*cols*frames;
+            fseek(writer,(ceil(fSize/8)-1),-1);
+            fwrite(writer,1,'ubit1','b');
+            fseek(writer,0,-1);
+
             fwrite(writer,[frames,cols],'uint','b');
+
             switch bits
                 case 1
                     signed = false;
@@ -138,10 +146,15 @@ classdef AESFile < handle
         % writes full matrix to file
         function success = writeToFile(filepath,A,bits,signed)
             success = false;
-            fout = fopen(filepath, 'w');
             if (length(size(A))~=2)
                 return;
             end
+
+            fout = fopen(filepath, 'w');
+            fSize = 64 + bits*cols*frames;
+            fseek(fout,(ceil(fSize/8)-1),-1);
+            fwrite(fout,1,'ubit1','b');
+            fseek(fout,0,-1);
 
             fwrite(fout,size(A),'uint','b');
             

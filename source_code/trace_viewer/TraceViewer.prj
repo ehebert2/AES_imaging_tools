@@ -8,15 +8,15 @@
       <file>${PROJECT_ROOT}\TraceViewer_resources\icon_24.png</file>
       <file>${PROJECT_ROOT}\TraceViewer_resources\icon_16.png</file>
     </param.icons>
-    <param.version>1.2</param.version>
+    <param.version>2.0</param.version>
     <param.authnamewatermark>Eric Hebert</param.authnamewatermark>
     <param.email />
-    <param.company />
-    <param.summary>Application used to quickly view output from the AES motion correction app.</param.summary>
+    <param.company>Cornell University</param.company>
+    <param.summary>Tool to get quick overview of output from motion correction app.</param.summary>
     <param.description />
     <param.screenshot>D:\research\aes_image_tools\graphics\splash_screens\trace_viewer_app_icon.png</param.screenshot>
     <param.guid />
-    <param.installpath.string>\TraceViewer\</param.installpath.string>
+    <param.installpath.string>\Cornell University\TraceViewer\</param.installpath.string>
     <param.installpath.combo>option.installpath.programfiles</param.installpath.combo>
     <param.logo />
     <param.install.notes />
@@ -49,7 +49,6 @@
 	 input arguments</param.help.text>
     <unset>
       <param.email />
-      <param.company />
       <param.description />
       <param.guid />
       <param.installpath.string />
@@ -83,6 +82,7 @@
     </fileset.main>
     <fileset.resources>
       <file>${PROJECT_ROOT}\+helper_apps\+images\pause.png</file>
+      <file>${PROJECT_ROOT}\+helper_apps\+images\stop_active.png</file>
     </fileset.resources>
     <fileset.package />
     <fileset.depfun>
@@ -97,10 +97,12 @@
       <file>${PROJECT_ROOT}\+helper_apps\trace_settings_helper_app.mlapp</file>
       <file>${PROJECT_ROOT}\AESFile.m</file>
       <file>${PROJECT_ROOT}\AESOutputParser.m</file>
+      <file>${PROJECT_ROOT}\Background.m</file>
       <file>${PROJECT_ROOT}\MaskHandler.m</file>
       <file>${PROJECT_ROOT}\MaskType.m</file>
       <file>${PROJECT_ROOT}\StackTracker.m</file>
       <file>${PROJECT_ROOT}\TraceHandler.m</file>
+      <file>${PROJECT_ROOT}\TraceType.m</file>
       <file>${PROJECT_ROOT}\validateParams.m</file>
     </fileset.depfun>
     <build-deliverables>
