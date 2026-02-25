@@ -1,13 +1,6 @@
 function varargout = FeedBackLoopBoLi_20190622(varargin)
-
-% 20220708 update: add keyboard interrupt to feedback loop
-% 20220606 update: in feedback loop main, change plotting from AWG
-% electronic in to AWG optical out
-% 20220527 update: add movie capture function in feedback loop main
-% 20220524 update: AWG on range changed to 1-6 V. Not working yet. 
-% 
-% modified by SZhao on 12062020 to initially try to adapt to 114 MHz. 
-% 
+% For calibrating Pockels cell in Weill Hall 20250413
+% modified by SZhao on 20210620 for LFOV in Weill Hall
 % FEEDBACKLOOPBOLI_20190622 MATLAB code for FeedBackLoopBoLi_20190622.fig
 %      FEEDBACKLOOPBOLI_20190622, by itself, creates a new FEEDBACKLOOPBOLI_20190622 or raises the existing
 %      singleton*.
@@ -74,15 +67,15 @@ set(handles.edit20, 'String', 'Slot5');
 % default gain, 0 to 6 V
 set(handles.edit6, 'String', num2str(1)); 
 % default offset, -0.25 to 0.25 V
-set(handles.edit7, 'String', num2str(-0.015)); 
+set(handles.edit7, 'String', num2str(0)); 
 % default sampling rate: 0 - 114 MHz
-set(handles.edit15, 'String', num2str(114)); 
+set(handles.edit15, 'String', num2str(0.888)); 
 % default sampling source: 1. Internal 2. External
-set(handles.text26, 'String', 'External'); 
+set(handles.text26, 'String', 'Internal'); 
 % default sampling source: 1. Internal 2. External
 set(handles.edit43, 'String', num2str(0)); 
 % default repetition rate, MHz
-set(handles.edit46, 'String', num2str(21)); 
+set(handles.edit46, 'String', num2str(10)); 
 
 
 % OSC
@@ -95,7 +88,7 @@ set(handles.edit11, 'String', num2str(912));   % in MHz
 % default number of buffers in one acquisition 
 set(handles.edit12, 'String', num2str(1));      % no unit
 % default buffer duration
-set(handles.edit16, 'String', num2str(701));   % in us
+set(handles.edit16, 'String', num2str(70.1));   % in us
 % default board ID
 set(handles.edit22, 'String', num2str(1));      % no unit
 % default trigger level
@@ -106,29 +99,28 @@ set(handles.text44, 'String', 'External ');
 set(handles.text48, 'String', 'No '); 
 % Available channels? 1. A  , 2. B  ,3. A+B.
 set(handles.text50, 'String', 'A  '); 
-% boardHandle
-addpath('AlazarDriver'); 
-AlazarDefs; 
-if ~alazarLoadLibrary() 
-    fprintf('Error: ATSApi library not loaded\n');
-    return
-end
-systemId = int32(1); % 1 is ID for the device
-boardId = int32(1);  % 1 is ID for the device
-boardHandle = AlazarGetBoardBySystemID(systemId, boardId);
-setdatatype(boardHandle, 'voidPtr', 1, 1);
-handles.boardHandle = boardHandle;
+% % boardHandle
+% addpath('AlazarDriver'); 
+% AlazarDefs; 
+% if ~alazarLoadLibrary() 
+%     fprintf('Error: ATSApi library not loaded\n');
+%     return
+% end
+% systemId = int32(1); % 1 is ID for the device
+% boardId = int32(1);  % 1 is ID for the device
+% boardHandle = AlazarGetBoardBySystemID(systemId, boardId);
+% setdatatype(boardHandle, 'voidPtr', 1, 1);
+% handles.boardHandle = boardHandle;
 
 
 % Feedback
 % default loop number
-set(handles.edit17, 'String', num2str(1)); 
+set(handles.edit17, 'String', num2str(0)); 
 % default work mode: 1. Test mode 2. Work mode
 % set(handles.text24, 'String', 'Work mode');
-% Channel A starts at ... us    When see spikes on the right edge of PD
-% envelopes, this number needs to decrease
+% Channel A starts at ... us
 % set(handles.edit29, 'String', '44.75'); % for 4 MHz
-set(handles.edit29, 'String', '0.17'); % for 32 MHz
+set(handles.edit29, 'String', '0.202'); % for 32 MHz
 % Channel B starts at ... us
 % set(handles.edit30, 'String', '42.86'); % for 4 MHz
 set(handles.edit30, 'String', '42.88'); % for 32 MHz
@@ -174,9 +166,9 @@ set(handles.edit34, 'String', 'OSC_Measure_20180123_Data1_1');
 
 
 % Image process
-handles.ImageProcessFolder = 'F:\NI_PXI5422_GUI_20190621\Pattern_generation';
+handles.ImageProcessFolder = 'V:\xiaoran\20250412 Weill imaging session codes';
 set(handles.edit25, 'String', handles.ImageProcessFolder);
-handles.ImageProcessFileName = '66kHz_522by522_strip1.tif';
+handles.ImageProcessFileName = 'AES_calib_200by512.tif';
 set(handles.edit24, 'String', handles.ImageProcessFileName);
 handles.captionFontSize = 8;
 % default Threshold
@@ -190,31 +182,31 @@ set(handles.text70, 'String', 'Stack');
 % default normalization factor
 set(handles.edit38, 'String', '0.7');
 % default pulse value in scan back time
-set(handles.edit39, 'String', '0.6');
+set(handles.edit39, 'String', '0');
 % default compensation pixels for blank line
 set(handles.edit40, 'String', '10');
 % default value: the flyback time is divided by this factor
-set(handles.edit41, 'String', '1');
+set(handles.edit41, 'String', '6');
 % default pixel time
-set(handles.edit42, 'String', '40'); % 32 MHz laser, 1 pixel 1 pulse
+set(handles.edit42, 'String', '20'); % 32 MHz laser, 1 pixel 1 pulse
 % default if equal each line, 1. Yes. 2. No .
 set(handles.text104, 'String', 'Yes');
-set(handles.edit47, 'String', '140'); % Scanback time, left side
-set(handles.edit48, 'String', '1566'); % Scan time
-set(handles.edit49, 'String', '140'); % Scan back time, right side
+set(handles.edit47, 'String', '4'); % Scanback time, left side
+set(handles.edit48, 'String', '512'); % Scan time
+set(handles.edit49, 'String', '4'); % Scan back time, right side
 set(handles.edit50, 'String', '0.0'); % Scan back time, right side2
 set(handles.edit51, 'String', '0'); % Scan back time extra compensation for feedback, a line has 2606 AWG 4047 samples, now it has floor((583+1441*2+560)/4)*4+4 = 4028, so compensation = 4047-4028 = 19.
-set(handles.edit52, 'String', '0'); % Fly back time, % max time = 33100 samples!! reasonable values: [29000, 33100]
-set(handles.edit54, 'String', '20230503_lineRate66k_90FF.txt'); % Image pixels to AWG samples.
+set(handles.edit52, 'String', '100'); % Fly back time, % max time = 33100 samples!! reasonable values: [29000, 33100]
+set(handles.edit54, 'String', 'pix2pulses_512.txt'); % Image pixels to AWG samples.
 
-% For 114 MHz below:
-% set(handles.edit47, 'String', '583'); % Scanback time, left side
-% set(handles.edit48, 'String', '1441'); % Scan time
-% set(handles.edit49, 'String', '560'); % Scan back time, right side
+% % For 114 MHz below:
+% set(handles.edit47, 'String', '2090'); % Scanback time, left side
+% set(handles.edit48, 'String', '5168'); % Scan time
+% set(handles.edit49, 'String', '2008'); % Scan back time, right side
 % set(handles.edit50, 'String', '0.0'); % Scan back time, right side2
 % set(handles.edit51, 'String', '19'); % Scan back time extra compensation for feedback, a line has 2606 AWG 4047 samples, now it has floor((583+1441*2+560)/4)*4+4 = 4028, so compensation = 4047-4028 = 19.
-% set(handles.edit52, 'String', '32000'); % Fly back time, % max time = 33100 samples!! reasonable values: [29000, 33100]
-% set(handles.edit54, 'String', 'Pixel_vs_samples20190118.txt'); % Image pixels to AWG samples.
+% set(handles.edit52, 'String', '114713'); % Fly back time, % max time = 33100 samples!! reasonable values: [29000, 33100]
+% set(handles.edit54, 'String', 'Pixel_vs_samples20210208.txt'); % Image pixels to AWG samples.
 
 
 % Initial AWG
@@ -223,8 +215,8 @@ set(handles.edit54, 'String', '20230503_lineRate66k_90FF.txt'); % Image pixels t
 
 % AWG Initialization status update
 AWGInitializationCheck(handles);
-% OSC Initialization status update
-OSCInitializationCheck(handles);
+% % OSC Initialization status update
+% OSCInitializationCheck(handles);
 
 set(handles.edit21, 'String', 'GUI is ready  ^_^'); 
 % Update handles structure
@@ -387,58 +379,38 @@ NSample = floor(TWindow/DTime/4)*4;                    % 8 = 32 MHz / 4 MHz; One
 % TWindow/DTime
 
 % Pattern 1: 10 neurons (200 um) in one line(500 um)
-% TWindowOn = TWindow*50/100;                            % Time window for pulse on
-% NSampleOn = floor(TWindowOn/DTime/8)*8;                 % Sample number for pulse on
-% WAVEFORMOn = linspace(PulseOn,PulseOn,NSampleOn);       % Waveform for pulse on
-% NSampleOff = NSample-NSampleOn;                         % Sample number for pulse off
-% WAVEFORMOff = linspace(PulseOff,PulseOff,NSampleOff);   % Waveform for pulse off
-% WAVEFORMDATAARRAY = [WAVEFORMOn,WAVEFORMOff];          % Waveform, value: (-1,1)
-% % WAVEFORMDATAARRAYNorm = abs((WAVEFORMDATAARRAY-PulseOff)/max(WAVEFORMDATAARRAY-PulseOff)); % Normalized
-% WAVEFORMSIZE = length(WAVEFORMDATAARRAY);               % Waveform size
-% % WaveformIdealOut = WAVEFORMDATAARRAY;                   % Ideal final optical output waveform, normalized.
-% % WaveformIdealMatrix = reshape(WAVEFORMDATAARRAY,[1,WAVEFORMSIZE/1]); % Matrix
-% % WaveformIdealPeak = abs((WaveformIdealMatrix-PulseOff)/max(WaveformIdealMatrix-PulseOff));           % Ideal final output peak.
-% % NumPulseOnOne = sum(WaveformIdealPeak);                    % number of pulse on
-% WAVEFORMDATAARRAY2 = [WAVEFORMOn,WAVEFORMOff];          % Waveform, value: (-1,1)
-% WAVEFORMSIZE2 = length(WAVEFORMDATAARRAY2);               % Waveform size
+TWindowOn = TWindow*50/100;                            % Time window for pulse on
+NSampleOn = floor(TWindowOn/DTime/8)*8;                 % Sample number for pulse on
+WAVEFORMOn = linspace(PulseOn,PulseOn,NSampleOn);       % Waveform for pulse on
+NSampleOff = NSample-NSampleOn;                         % Sample number for pulse off
+WAVEFORMOff = linspace(PulseOff,PulseOff,NSampleOff);   % Waveform for pulse off
+WAVEFORMDATAARRAY = [WAVEFORMOn,WAVEFORMOff];          % Waveform, value: (-1,1)
+% WAVEFORMDATAARRAYNorm = abs((WAVEFORMDATAARRAY-PulseOff)/max(WAVEFORMDATAARRAY-PulseOff)); % Normalized
+WAVEFORMSIZE = length(WAVEFORMDATAARRAY);               % Waveform size
+% WaveformIdealOut = WAVEFORMDATAARRAY;                   % Ideal final optical output waveform, normalized.
+% WaveformIdealMatrix = reshape(WAVEFORMDATAARRAY,[1,WAVEFORMSIZE/1]); % Matrix
+% WaveformIdealPeak = abs((WaveformIdealMatrix-PulseOff)/max(WaveformIdealMatrix-PulseOff));           % Ideal final output peak.
+% NumPulseOnOne = sum(WaveformIdealPeak);                    % number of pulse on
+WAVEFORMDATAARRAY2 = [WAVEFORMOn,WAVEFORMOff];          % Waveform, value: (-1,1)
+WAVEFORMSIZE2 = length(WAVEFORMDATAARRAY2);               % Waveform size
 
-% if SamplingSourceNum==1 % for external sampling source
-    NSample = 50;
-    NSampleOn = 25;                                        % Sample number for pulse on 
+if SamplingSourceNum==1 % for external sampling source
+    NSample = 3000;
+    NSampleOn = 300;                                        % Sample number for pulse on
     WAVEFORMOn = linspace(PulseOn,PulseOn,NSampleOn);       % Waveform for pulse on
-    NSampleOff = NSample - NSampleOn;                      % Sample number for pulse off
+    NSampleOff = NSample-NSampleOn;                         % Sample number for pulse off
     WAVEFORMOff = linspace(PulseOff,PulseOff,NSampleOff);   % Waveform for pulse off
-    OnePeriodRef = [WAVEFORMOff,WAVEFORMOn];          % Waveform, value: (-1,1)
-%     NSample = 4000;
-%     NSampleOn = 55;                                        % Sample number for pulse on 
-    WAVEFORMOn = linspace(PulseOn,PulseOn,NSampleOn);       % Waveform for pulse on
-    NSampleOff = NSample - NSampleOn;                    % Sample number for pulse off
-    WAVEFORMOff = linspace(PulseOff,PulseOff,NSampleOff);   % Waveform for pulse off
-    OnePeriod = [WAVEFORMOff,WAVEFORMOn]; 
-%     OnePeriod(NSampleOff-5409:NSampleOff-5400) = PulseOn;
-    WaveformRef = repmat(OnePeriodRef,1,20);
-    Waveform2nd = repmat(OnePeriod,1,20);
-    WAVEFORMDATAARRAY = [WaveformRef,Waveform2nd];
-    
-%     WAVEFORMDATAARRAY = [WAVEFORMOn,WAVEFORMOff,WAVEFORMOn,WAVEFORMOff,WAVEFORMOn,WAVEFORMOff,WAVEFORMOn,WAVEFORMOff,WAVEFORMOn,WAVEFORMOff,WAVEFORMOn,WAVEFORMOff]; 
+%     WAVEFORMDATAARRAY = [WAVEFORMOn,WAVEFORMOff];          % Waveform, value: (-1,1)
+    WAVEFORMDATAARRAY = [WAVEFORMOn,WAVEFORMOff,WAVEFORMOn,WAVEFORMOff,WAVEFORMOn,WAVEFORMOff,WAVEFORMOn,WAVEFORMOff,WAVEFORMOn,WAVEFORMOff,WAVEFORMOn,WAVEFORMOff]; 
     % WAVEFORMDATAARRAYNorm = abs((WAVEFORMDATAARRAY-PulseOff)/max(WAVEFORMDATAARRAY-PulseOff)); % Normalized
     WAVEFORMSIZE = length(WAVEFORMDATAARRAY);               % Waveform size
-    
-    
-%     dividor = 32;
-%     dividorArray = linspace(PulseOff,PulseOff, WAVEFORMSIZE);
-%     dividorArray(1:dividor:end) = 1;
-%     WAVEFORMDATAARRAY = WAVEFORMDATAARRAY.*dividorArray;
-    
-    
-    
     % WaveformIdealOut = WAVEFORMDATAARRAY;                   % Ideal final optical output waveform, normalized.
     % WaveformIdealMatrix = reshape(WAVEFORMDATAARRAY,[1,WAVEFORMSIZE/1]); % Matrix
     % WaveformIdealPeak = abs((WaveformIdealMatrix-PulseOff)/max(WaveformIdealMatrix-PulseOff));           % Ideal final output peak.
     % NumPulseOnOne = sum(WaveformIdealPeak);                    % number of pulse on
 %     WAVEFORMDATAARRAY2 = [WAVEFORMOn,WAVEFORMOff];          % Waveform, value: (-1,1)
 %     WAVEFORMSIZE2 = length(WAVEFORMDATAARRAY2);               % Waveform size
-% end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%% Enable AWG output %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -450,8 +422,6 @@ if ExistAWGICdevice == 1
     invoke(handles.AWGdeviceObj.Utility,'disable');
     disp('AWG is stoped since it was on.');
 end
-
-
 % Configure the sampling rate
 invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'configuresamplerate',AWGSamplingRate);
 if SamplingSourceNum==1 % if use external source
@@ -482,11 +452,10 @@ invoke(handles.AWGdeviceObj.Configuration,'configureoutputmode',NIFGEN_VAL_OUTPU
 
 
 
-% scnim
-% % Query maximum capabilities
+
+% Query maximum capabilities
 % [MAXIMUMNUMBEROFWAVEFORMS,WAVEFORMQUANTUM,MINIMUMWAVEFORMSIZE,MAXIMUMWAVEFORMSIZE] = invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'queryarbwfmcapabilities');
-% fprintf(['MAXIMUMNUMBEROFWAVEFORMS: ', num2str(MAXIMUMNUMBEROFWAVEFORMS), ' \n']);
-% fprintf(['MAXIMUMWAVEFORMSIZE: ', num2str(MAXIMUMWAVEFORMSIZE), ' \n']);
+
 
 
 % % Configure arbitrary waveform
@@ -516,7 +485,6 @@ invoke(handles.AWGdeviceObj.Waveformcontrol,'initiategeneration');
 
 % Enable the Output
 invoke(handles.AWGdeviceObj.Configuration,'configureoutputenabled', ChannelName, Enabled);
-% fprintf(['AWG takes time: ', num2str(toc(testTime)), 's. \n']);
 
 % disp('AWG is working');
 
@@ -560,8 +528,8 @@ NIFGEN_ATTR_ARB_OFFSET = str2double(get(handles.edit7, 'String'));   % Offset, E
     end
 SamplingSource = get(handles.text26, 'String');                   % Sampling source, T26, P14, P15, 1. Internal 2. External
     if SamplingSource == 'Internal'
-        if AWGSamplingRate>200e6 || AWGSamplingRate<=0.01e6
-            errordlg('Sampling range is [0.01, 200] MHz','GUI Error');
+        if AWGSamplingRate>114e6 || AWGSamplingRate<=0.01e6
+            errordlg('Sampling range is [0.01, 114] MHz','GUI Error');
             return;
         end
         SamplingSourceNum = 0;
@@ -642,21 +610,21 @@ if ExistAWGICdevice == 1
 end
 
 % Configure the sampling rate
-invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'configuresamplerate',AWGSamplingRate);    % Tell the AWG an expected sampling rate or the internal sampling rate
+invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'configuresamplerate',AWGSamplingRate);
 if SamplingSourceNum==1 % if use external source
     invoke(handles.AWGdeviceObj.Configurationfunctionsconfigureclock,'configuresampleclocksource',"ClkIn");
+else
+    invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'configuresamplerate',AWGSamplingRate);
 end
 % AWG output delay, this value should be less than 1 sample time
 AWGADJUSTMENTTIME = str2double(get(handles.edit43, 'String'))*1e-6; % Read how loops
-
-
 % Configure AWG sample delay
 if AWGADJUSTMENTTIME~=0
     invoke(handles.AWGdeviceObj.Configurationfunctionsconfigureclock,'adjustsampleclockrelativedelay',AWGADJUSTMENTTIME);
 end
 % set(handles.AWGdeviceObj.Clocksadvanced(1), 'External_Clock_Delay_Binary_Value', 0e-9);
 % set(handles.AWGdeviceObj.Output(1), 'Channel_Delay', 0);
-set(handles.AWGdeviceObj.Clocksadvanced(1), 'Sample_Clock_Absolute_Delay', 0e-9);
+% set(handles.AWGdeviceObj.Clocksadvanced(1), 'Sample_Clock_Absolute_Delay', 0e-9);
 % Create arbitrary waveform
 [NIFGEN_ATTR_ARB_WAVEFORM_HANDLE] = invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'createwaveformf64',ChannelName,WAVEFORMSIZE,WAVEFORMDATAARRAY);
 
@@ -752,11 +720,10 @@ fprintf('Measure begins...\n');
 % % Bo: if ~(m file): if m file exist, run it, if not, fprintf.
 % alazarLoadLibrary();
 
-% testTime = tic;
 %%% OSC group
 % Sampling rate set, edit 11, in Hz
 OSCSamplingRate = str2double(get(handles.edit11, 'String'))*1e6;
-if OSCSamplingRate~=500e6 && OSCSamplingRate~=1000e6 && OSCSamplingRate~= 912e6 && OSCSamplingRate~= 917e6
+if OSCSamplingRate~=500e6 && OSCSamplingRate~=1000e6 && OSCSamplingRate~= 912e6
     errordlg('OSC sampling rate should be 500 or 1000 or 912 MHz','GUI Error');
     return;
 end
@@ -789,12 +756,12 @@ if ~configureBoard(handles)
     return
 end
 
-% fprintf(['OSC configuration takes time: ',num2str(toc(testTime)),' s.\n']);
-
 % Acquire data, optionally saving it to a file
 AverageTime = str2double(get(handles.edit28, 'String'));
 VItensityAmp = VTimeOSC*0;
 VItensityMod = VItensityAmp;
+
+
 
 
 
@@ -831,7 +798,7 @@ end
 % hold on
 % xlim([-100,100])
 
-% fprintf(['OSC takes time after acquisition: ',num2str(toc(testTime)),' s.\n']);
+
 
 if OSCChannelNumber == 2
     VItensityAmp = VItensityAmp/AverageTime;
@@ -869,7 +836,6 @@ else
     title('Channel A');    
 end
 fprintf('Measure finished.\n');
-
 NewhObject=hObject;
 Newhandles=handles;
 
@@ -1116,6 +1082,10 @@ end
 invoke(handles.AWGdeviceObj.Configuration,'configureoutputmode',NIFGEN_VAL_OUTPUT_SEQ);
 % % Configure output mode - ARB
 % invoke(handles.AWGdeviceObj.Configuration,'configureoutputmode',NIFGEN_VAL_OUTPUT_ARB);
+
+% clear AWG memory before loading new arrays
+invoke(handles.AWGdeviceObj.Waveformcontrol,'abortgeneration');
+invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarysequenceoutput,'cleararbmemory');
 
 % Create arbitrary sequence
 
@@ -1388,8 +1358,8 @@ function [NewhObject, Newhandles]=FeedbackloopRun(hObject, handles)
 % The feedback loop function starts from here
 fprintf('\n\n\n');
 fprintf('Feedback loop starts from here.\n');
-FeedbackLoopTime = tic;
-FeedbackLoopTimeBeforeLoop = tic;
+% FeedbackLoopTime = tic;
+% FeedbackLoopTimeBeforeLoop = tic;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1404,11 +1374,11 @@ if ExistAWGICdevice ~= 1
 end
 
 
-% Configure the board's sample rate, input, and trigger settings
-if ~configureBoard(handles)
-    fprintf('Error: DAQ/OSC Board configuration failed\n');
-    return
-end
+% % Configure the board's sample rate, input, and trigger settings
+% if ~configureBoard(handles)
+%     fprintf('Error: DAQ/OSC Board configuration failed\n');
+%     return
+% end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1450,49 +1420,6 @@ AWGSamplingSource = get(handles.text26, 'String');
 % AWG output delay, this value should be less than 1 sample time
 AWGADJUSTMENTTIME = str2double(get(handles.edit43, 'String'))*1e-6; % Read how loops
 
-%%% OSC group
-% Acquiredata Start
-OSCboardHandle = handles.boardHandle;
-% call mfile with library definitions
-AlazarDefs;
-% Sampling rate set, edit 11, in Hz
-OSCSamplingRate = str2double(get(handles.edit11, 'String'))*1e6;
-if OSCSamplingRate~=500e6 && OSCSamplingRate~=1000e6 && OSCSamplingRate~= 912e6
-    errordlg('OSC sampling rate should be 500 or 1000 or 912 MHz','GUI Error');
-    return;
-end
-% Buffer time, edit 16, in second
-OSCBufferTime = str2double(get(handles.edit16, 'String'))*1e-6;
-% Buffer samples
-OSCBufferSamples = OSCBufferTime*OSCSamplingRate;
-% Buffer numbers in 1 acquisition
-OSCBufferNumberInOneAcq = str2double(get(handles.edit12, 'String'));
-% Acquisition Time, in second
-OSCAcquisitionTime = OSCBufferTime * OSCBufferNumberInOneAcq;
-% Samples in one total acquisition
-OSCNlengthAllChannel = OSCAcquisitionTime*OSCSamplingRate;
-% Channels
-OSCChannelNumber = 1;
-OSCChannelNumberCode = get(handles.text50, 'String');
-if OSCChannelNumberCode == 'A+B'
-    OSCChannelNumber = 2;
-end
-
-
-
-% Samples in one channel in one acquisition, last 3 samples are deleted.
-OSCNlengthPerChannel = floor(OSCNlengthAllChannel)-3;
-% OSC time
-DTimeOSC = 1/OSCSamplingRate;
-
-VTimeOSC = 1:1:OSCNlengthPerChannel;
-VTimeOSC = VTimeOSC.*DTimeOSC;
-% VTimeOSC = linspace(1,OSCNlengthPerChannel,OSCNlengthPerChannel);
-% VTimeOSC = DTimeOSC* VTimeOSC;
-
-% Ratio of OSC and AWG
-SamRatioOscToAWG = round(OSCSamplingRate/AWGSamplingRate);              % Ratio of OSC sampling rate and AWG sampling rate
-
 
 %%% Feedback loop group
 NLoop = str2double(get(handles.edit17, 'String')); % Read how loops
@@ -1519,71 +1446,6 @@ if DataSaveSaveData == 'Yes'
     end
 end
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%% DAQ/OSC predefine %%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% TODO: Select which channels to capture (A, B, or both)
-
-% TODO: Select which channels to capture (A, B, or both)
-OSCChannel = get(handles.text50, 'String');
-if OSCChannel == 'A  '
-    OSCchannelMask = CHANNEL_A;
-end
-if OSCChannel == 'B  '
-    OSCchannelMask = CHANNEL_B;
-    SamplingClockSource = get(handles.text134, 'String'); % Internal or External
-    if SamplingClockSource == 'External'
-        fprintf('Only CH A is available when use external source as sampling clock.\n', errorToText(retCode));
-        return
-    end
-end
-if OSCChannel == 'A+B'
-    OSCchannelMask = CHANNEL_A+CHANNEL_B;
-    SamplingClockSource = get(handles.text134, 'String'); % Internal or External
-%     % 20220606 test
-%     if SamplingClockSource == 'External'
-%         fprintf('Only CH A is available when use external source as sampling clock.\n', errorToText(retCode));
-%         return
-%     end
-end
-
-% Calculate the number of enabled channels from the channel mask
-OSCchannelCount = 0;
-OSCchannelsPerBoard = 2;
-for channel = 0:OSCchannelsPerBoard - 1
-    channelId = 2^channel;
-    if bitand(channelId, OSCchannelMask)
-        OSCchannelCount = OSCchannelCount + 1;
-    end
-end
-
-if (OSCchannelCount < 1) || (OSCchannelCount > OSCchannelsPerBoard)
-    fprintf('Error: Invalid channel mask %08X\n', OSCchannelMask);
-    return
-end
-% Get the sample and memory size
-[OSCretCode, OSCboardHandle, maxSamplesPerRecord, OSCbitsPerSample] = AlazarGetChannelInfo(OSCboardHandle, 0, 0);
-if OSCretCode ~= ApiSuccess
-    fprintf('Error: AlazarGetChannelInfo failed -- %s\n', errorToText(OSCretCode));
-    return
-end
-% Calculate the size of each buffer in bytes
-OSCbytesPerSample = floor((double(OSCbitsPerSample) + 7) / double(8));
-OSCsamplesPerBuffer = OSCBufferSamples * OSCchannelCount;
-OSCbytesPerBuffer = OSCbytesPerSample * OSCsamplesPerBuffer;
-% Find the number of buffers in the acquisition
-if OSCAcquisitionTime > 0
-    OSCsamplesPerAcquisition = floor((OSCSamplingRate * OSCAcquisitionTime + 0.5));
-    OSCbuffersPerAcquisition = uint32(floor((OSCsamplesPerAcquisition + OSCBufferSamples - 1) / OSCBufferSamples));
-else
-    OSCbuffersPerAcquisition = hex2dec('7FFFFFFF');  % acquire until aborted
-end
-% TODO: Select the number of DMA buffers to allocate.
-% The number of DMA buffers must be greater than 2 to allow a board to DMA into
-% one buffer while, at the same time, your application processes another buffer.
-OSCbufferCount = uint32(4);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1628,7 +1490,6 @@ if get(handles.text94, 'String') == 'Yes'
     WAVEFORMDATAARRAY = linspace(0,0,SamplesOfOnePattern);
     WAVEFORMDATAARRAYImageArea = WAVEFORMDATAARRAY;
     
-    
     % First part, line 2 to 511
     for k = 1:LineOfThePatternFirst
         StartL = 1+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
@@ -1646,23 +1507,15 @@ if get(handles.text94, 'String') == 'Yes'
 %     WAVEFORMDATAARRAY = [WAVEFORMDATAARRAY,WAVEFORMDATAARRAY];
     WAVEFORMDATAARRAY = WAVEFORMDATAARRAY/1*(PulseOn-PulseOff)+PulseOff; % from [0,1] to [-1,1]    
     VTimeAWG = linspace(DTimeAWG,DTimeAWG*NSampleAWG,NSampleAWG);          % Define Time axis
-  
+    
     
 end
 
-    FigXPeriod       = (str2double(get(handles.edit57, 'String'))-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample)*DTimeAWG; % every two lines have 2606 AWG samples.
-    FigXStartValue = str2double(get(handles.edit58, 'String'))*1e-6+FigXPeriod;
-    FigXEndValue   = str2double(get(handles.edit56, 'String'))*1e-6+FigXPeriod;
-    FigureShowStart = find(VTimeAWG>FigXStartValue,1);
-    FigureShowEnd = find(VTimeAWG>FigXEndValue,1);
-
-    
-    handles.LastWAVEFORMDATAARRAY     = WAVEFORMDATAARRAY;
-    handles.FinalPatternInSampleFirst = PatternInSampleFirst;
-    handles.FinalPatternInSampleLast = PatternInSampleLast;
-    
-% export initial AWG waveform
-csvwrite('patternB4Fdbk.csv', WAVEFORMDATAARRAY);
+%     FigXPeriod       = (str2double(get(handles.edit57, 'String'))-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample)*DTimeAWG; % every two lines have 2606 AWG samples.
+%     FigXStartValue = str2double(get(handles.edit58, 'String'))*1e-6+FigXPeriod;
+%     FigXEndValue   = str2double(get(handles.edit56, 'String'))*1e-6+FigXPeriod;
+%     FigureShowStart = find(VTimeAWG>FigXStartValue,1);
+%     FigureShowEnd = find(VTimeAWG>FigXEndValue,1);
 
 % WAVEFORMDATAARRAY = WAVEFORMDATAARRAY.*0+1;
 % Line = 772
@@ -1676,42 +1529,41 @@ WAVEFORMSIZE = length(WAVEFORMDATAARRAY);               % Waveform size
 WaveformIdealMatrix = reshape(WAVEFORMDATAARRAY,[1,WAVEFORMSIZE/1]); % Matrix
 WaveformIdealPeak = (WaveformIdealMatrix-PulseOff)/(PulseOn-PulseOff);% Ideal final output peak.
 WavefommIdealPulseOnOne = WaveformIdealPeak>=PulseOn;   % Pulse that is >=1
-WavefommIdealPulseOn    = WaveformIdealPeak>PulseOff;          % Pulses that is >0
+WavefommIdealPulseOn    = WaveformIdealPeak>0;          % Pulses that is >0
 NumPulseOnOne = sum(WavefommIdealPulseOnOne);                    % number of pulse on
 NumPulseOn    = sum(WavefommIdealPulseOn);                    % number of pulse on
 
 % figure
-%
-%plot(VTimeAWG,WAVEFORMDATAARRAY,'b');hold on
-%plot(VTimeAWG,WaveformIdealPeak,'r');hold on
-%plot(VTimeAWG,WavefommIdealPulseOnOne,'--k');hold on
-%plot(VTimeAWG,WavefommIdealPulseOn,'--g');hold on
+% 
+% plot(VTimeAWG,WAVEFORMDATAARRAY,'b');hold on
+% plot(VTimeAWG,WaveformIdealPeak,'r');hold on
+% plot(VTimeAWG,WavefommIdealPulseOnOne,'--k');hold on
+% plot(VTimeAWG,WavefommIdealPulseOn,'--g');hold on
 
+%20210519 test
+% startFactor = 0.6;
+% WAVEFORMDATAARRAYNorm = startFactor*(WAVEFORMDATAARRAY-PulseOff)/(PulseOn-PulseOff); % Normalized
+% WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%% Feedback loop main function %%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% record video? 1 for yes, 0 for no. 
-videoRecord = 0; 
-
-if ishandle(211)
-    close figure 211;
+if ishandle(11)
+    close figure 11;
 end
-if ishandle(212)
-    close figure 212;
+if ishandle(12)
+    close figure 12;
 end
-if ishandle(213)
-    close figure 213;
+if ishandle(13)
+    close figure 13;
 end
 
-fh = figure (211);
-fh.Units = 'normalized'; fh.Position = [0 0 1 1];          % maximize figure 11 when run 
-hold on
+figure (11)
 % save(['Feedback_loop',Date,'_',ObjectName,'_',GroupName,'_',num2str(k),'th_rounds'],'VTime','VIntAmpPeakArrayOn','VTimeOSC','VItensityAmp');
 if FeedbackLoopRawData == 'Yes'
     set(gcf, 'units','normalized','outerposition',[0 0.035 0.5 0.7]);
-    figure (212)
+    figure (12)
     set(gcf, 'units','normalized','outerposition',[0.5 0.035 0.5 0.7]);
 else
     set(gcf, 'units','normalized','outerposition',[0 0.035 0.5 0.7]);
@@ -1719,1367 +1571,1231 @@ end
 
 
 
-% Arrays define
-VIntAmpPeakArrayMeanOn = linspace(0,0,NLoop);             % Average output pulse peak
-VIntAmpPeakArrayOnAveFluc =  VIntAmpPeakArrayMeanOn;       % average fluctuation
-VIntAmpPeakArrayOnRMSFluc =  VIntAmpPeakArrayMeanOn;       % RMS fluctuation
-VIntAmpPeakArrayOnMaxFluc =  VIntAmpPeakArrayMeanOn;       % Max fulctuatopm
-VIntAmpPeakArrayOnOneAveFluc =  VIntAmpPeakArrayMeanOn;       % average fluctuation
-VIntAmpPeakArrayOnOneRMSFluc =  VIntAmpPeakArrayMeanOn;       % RMS fluctuation
-VIntAmpPeakArrayOnOneMSFluc =  VIntAmpPeakArrayMeanOn;       % Mean squared fluctuation
-VIntAmpPeakArrayOnOneMaxFluc =  VIntAmpPeakArrayMeanOn;       % Max fulctuatopm
-VLoops = linspace(1,NLoop,NLoop);                       % Array of loops
 
 
 
 
+% set(handles.AWGdeviceObj.Output(1), 'Output_Enabled', 0.0);
+% invoke(handles.AWGdeviceObj.Waveformcontrol,'abortgeneration');
+% invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarysequenceoutput,'cleararbmemory');
+% 
+% % Configure the sampling rate
+% invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'configuresamplerate',AWGSamplingRate);
+% if AWGSamplingSource=='External' % The next line is only for external source.
+%    invoke(handles.AWGdeviceObj.Configurationfunctionsconfigureclock,'configuresampleclocksource',"ClkIn");
+% end
+% 
+% PulsePeakTest = str2double(get(handles.edit53, 'String'));
+% 
+% 
+% 
+% %     % Configure the board's sample rate, input, and trigger settings
+% % if ~configureBoard(handles)
+% %     fprintf('Error: Board configuration failed\n');
+% %     return
+% % end
+% 
+% 
+% 
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% AWG pre-setting %%%%%%%%%%%%%%%%%%%%%%%%
+% % export Marker 0 to PFI 1, 0.04 s
+% set(handles.AWGdeviceObj.Arbitrarywaveformarbitrarywaveformmode(1), 'Marker_Position', 0);
+% invoke(handles.AWGdeviceObj.Configurationfunctionstriggeringandsynchronization,'exportsignal',NIFGEN_VAL_MARKER_EVENT,"Marker0","PFI1");
+% 
+% % Configure output mode, 0.01 s
+% invoke(handles.AWGdeviceObj.Configuration,'configureoutputmode',NIFGEN_VAL_OUTPUT_ARB);
+% 
+% % Tigger mode :Continuouse/Stepped
+% % invoke(handles.AWGdeviceObj.Configurationfunctionstriggeringandsynchronization,'configuretriggermode',ChannelName,NIFGEN_VAL_STEPPED);
+% % invoke(handles.AWGdeviceObj.Configurationfunctionstriggeringandsynchronization,'configuredigitaledgestarttrigger',"PFI0",Rising_Edge);
+% 
+% % Continuous mode [The default mode is continuous mode], 0.01 s
+% % invoke(handles.AWGdeviceObj.Configuration,'configureoperationmode',ChannelName,NIFGEN_VAL_OPERATE_CONTINUOUS);
+% PulsePeakTest = str2double(get(handles.edit53, 'String'));
+% fprintf(['Before loop: ',num2str(toc(FeedbackLoopTimeBeforeLoop)),' s.\n']);
+% 
+% WAVEFORMDATAARRAY(WAVEFORMSIZE) = 0; % for safty reason, so that the modulated light alway has some power. It takes 0.0023903 seconds
+% AWGTakesTime = tic;
+% % WAVEFORMSIZE = length(WAVEFORMDATAARRAY); 
+% 
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%% Enable AWG output %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % Disable the AWG if it is running. (To protect AWG)
+% % ExistAWGICdevice = isfield(handles,'AWGdeviceObj');
+% % if ExistAWGICdevice == 1
+% %     invoke(handles.AWGdeviceObj.Utility,'disable');
+% % end
+% % [hObject,handles] = AWGInitializationFunction(hObject, 1, handles);
+% 
+% %     whos WAVEFORMDATAARRAY
+% 
+% % clear AWG memory so it won't be loaded with unneeded waveforms from
+% % previous loops -- by SZhao 01062021
+% invoke(handles.AWGdeviceObj.Waveformcontrol,'abortgeneration');
+% invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarysequenceoutput,'cleararbmemory');
+% 
+% % Create arbitrary waveform, 0.074 s .... 
+% %                                230 ms for 3.8 M pulses
+% [NIFGEN_ATTR_ARB_WAVEFORM_HANDLE] = invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'createwaveformf64',ChannelName,WAVEFORMSIZE,WAVEFORMDATAARRAY);
+% 
+% 
+% % Configure arbitrary waveform, 0.01 s
+% invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'configurearbwaveform',ChannelName,NIFGEN_ATTR_ARB_WAVEFORM_HANDLE,NIFGEN_ATTR_ARB_GAIN,NIFGEN_ATTR_ARB_OFFSET);
+% 
+% % Initiate the Waveform Generation, 0.016 s
+% invoke(handles.AWGdeviceObj.Waveformcontrol,'initiategeneration');
+% 
+% % Enable the Output, 0.02 s
+% invoke(handles.AWGdeviceObj.Configuration,'configureoutputenabled', ChannelName, Enabled);
+% % disp('AWG is working');
+% fprintf(['AWG: ',num2str(round(toc(AWGTakesTime)*1000)),' ms.   ']);
 
-
-set(handles.AWGdeviceObj.Output(1), 'Output_Enabled', 0.0);
-invoke(handles.AWGdeviceObj.Waveformcontrol,'abortgeneration');
-invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarysequenceoutput,'cleararbmemory');
-
-% Configure the sampling rate
-invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'configuresamplerate',AWGSamplingRate);
-if AWGSamplingSource=='External' % The next line is only for external source.
-   invoke(handles.AWGdeviceObj.Configurationfunctionsconfigureclock,'configuresampleclocksource',"ClkIn");
+handles.LastWAVEFORMDATAARRAY     = WAVEFORMDATAARRAY;
+FinalPatternInSampleFirst = PatternInSampleFirst;
+FinalPatternInSampleLast  = PatternInSampleLast;
+% First part, line 2 to 511
+for k = 1:LineOfThePatternFirst
+    StartL = 1+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
+    EndL   = SamplesOfOneLineFirst+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
+    FinalPatternInSampleFirst(k,:)=WAVEFORMDATAARRAY(StartL:EndL);
 end
-
-PulsePeakTest = str2double(get(handles.edit53, 'String'));
-
-
-
-    % Configure the board's sample rate, input, and trigger settings
-if ~configureBoard(handles)
-    fprintf('Error: Board configuration failed\n');
-    return
-end
-
-% Feedback loop: Acquire data, optionally saving it to a file
-AverageTime = str2double(get(handles.edit28, 'String'));
-VItensityAmp = VTimeOSC*0;
-VItensityMod = VItensityAmp;
-
-% Set the size of the waveform (equal to AWG waveform after scaling)
-WaveformOSCSize = round(WAVEFORMSIZE*SamRatioOscToAWG);                
-% Find when does the waveform start
-ChannelAStartPoint = str2double(get(handles.edit29, 'String'))*1e-6;
-WaveChannelAStartPoint = find(VTimeOSC>=ChannelAStartPoint & VTimeOSC<(ChannelAStartPoint)+0.01e-6); % Find when does the waveform start
-if WaveChannelAStartPoint(1)+WaveformOSCSize-1>OSCNlengthPerChannel
-    errordlg('OSC record length is less than the AWG waveform period','GUI Error');
-    return;
-end
-
-ChannelBStartPoint = str2double(get(handles.edit30, 'String'))*1e-6;
-WaveChannelBStartPoint = find(VTimeOSC>ChannelBStartPoint & VTimeOSC<(ChannelBStartPoint)+0.01e-6); % Find when does the waveform start
-    
-
-% Amplified intensity signal, the start and end
-VItensityAmpPulseStart = WaveChannelAStartPoint(1);
-VItensityAmpPulseEnd   = VItensityAmpPulseStart + SamRatioOscToAWG * WAVEFORMSIZE -1;
-disp(int2str(VItensityAmpPulseStart))
-
-% Modulated intensity signal, the start and end
-VItensityModPulseStart = WaveChannelBStartPoint(1);
-VItensityModPulseEnd   = VItensityModPulseStart + SamRatioOscToAWG * WAVEFORMSIZE -1;
+% Second part, line 512 to 1
+StartL = 1+SamplesOfOnePatternFirst;
+EndL   = SamplesOfOneLineLast+SamplesOfOnePatternFirst;
+FinalPatternInSampleLast(:)=WAVEFORMDATAARRAY(StartL:EndL);
+handles.FinalPatternInSampleFirst = FinalPatternInSampleFirst;
+handles.FinalPatternInSampleLast  = FinalPatternInSampleLast;
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% AWG pre-setting %%%%%%%%%%%%%%%%%%%%%%%%
-% export Marker 0 to PFI 1, 0.04 s
-set(handles.AWGdeviceObj.Arbitrarywaveformarbitrarywaveformmode(1), 'Marker_Position', 0);
-invoke(handles.AWGdeviceObj.Configurationfunctionstriggeringandsynchronization,'exportsignal',NIFGEN_VAL_MARKER_EVENT,"Marker0","PFI1");
-
-% Configure output mode, 0.01 s
-invoke(handles.AWGdeviceObj.Configuration,'configureoutputmode',NIFGEN_VAL_OUTPUT_ARB);
-
-% Tigger mode :Continuouse/Stepped
-% invoke(handles.AWGdeviceObj.Configurationfunctionstriggeringandsynchronization,'configuretriggermode',ChannelName,NIFGEN_VAL_STEPPED);
-% invoke(handles.AWGdeviceObj.Configurationfunctionstriggeringandsynchronization,'configuredigitaledgestarttrigger',"PFI0",Rising_Edge);
-
-% Continuous mode [The default mode is continuous mode], 0.01 s
-% invoke(handles.AWGdeviceObj.Configuration,'configureoperationmode',ChannelName,NIFGEN_VAL_OPERATE_CONTINUOUS);
-PulsePeakTest = str2double(get(handles.edit53, 'String'));
-fprintf(['Before loop: ',num2str(toc(FeedbackLoopTimeBeforeLoop)),' s.\n']);
-
-%csvwrite('waveformIdealPulseOnOne.csv', WavefommIdealPulseOnOne);
-%csvwrite('waveformDataArray.csv', WAVEFORMDATAARRAY);
-% csvwrite('waveformDataArrayNorm.csv', WAVEFORMDATAARRAYNorm);
-% csvwrite('waveformIdealPulseOn.csv', WavefommIdealPulseOn);
-% csvwrite('waveformSize.csv', WAVEFORMSIZE);
-
-lastRMS = 100;                          % used to track the most recent RMS, so skip the current loop if RMS jumps by too much 
-
-% Feedback loop starts
-for kLoopnum=1:NLoop
-    WAVEFORMDATAARRAY(WAVEFORMSIZE) = 0; % for safty reason, so that the modulated light alway has some power. It takes 0.0023903 seconds
-    
-    AWGTakesTime = tic;
-    % WAVEFORMSIZE = length(WAVEFORMDATAARRAY); 
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%%%%%%%%%%%%%%%%% Enable AWG output %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Disable the AWG if it is running. (To protect AWG)
-    % ExistAWGICdevice = isfield(handles,'AWGdeviceObj');
-    % if ExistAWGICdevice == 1
-    %     invoke(handles.AWGdeviceObj.Utility,'disable');
-    % end
-    % [hObject,handles] = AWGInitializationFunction(hObject, 1, handles);
-
-%     whos WAVEFORMDATAARRAY
-
-    % clear AWG memory so it won't be loaded with unneeded waveforms from
-    % previous loops -- by SZhao 01062021
-    invoke(handles.AWGdeviceObj.Waveformcontrol,'abortgeneration');
-    invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarysequenceoutput,'cleararbmemory');
-        
-    % Create arbitrary waveform, 0.074 s .... 
-%                                230 ms for 3.8 M pulses
-    [NIFGEN_ATTR_ARB_WAVEFORM_HANDLE] = invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'createwaveformf64',ChannelName,WAVEFORMSIZE,WAVEFORMDATAARRAY);
-
-
-    % Configure arbitrary waveform, 0.01 s
-    invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'configurearbwaveform',ChannelName,NIFGEN_ATTR_ARB_WAVEFORM_HANDLE,NIFGEN_ATTR_ARB_GAIN,NIFGEN_ATTR_ARB_OFFSET);
-
-    % Initiate the Waveform Generation, 0.016 s
-    invoke(handles.AWGdeviceObj.Waveformcontrol,'initiategeneration');
-
-    % Enable the Output, 0.02 s
-    invoke(handles.AWGdeviceObj.Configuration,'configureoutputenabled', ChannelName, Enabled);
-    % disp('AWG is working');
-    fprintf(['AWG: ',num2str(round(toc(AWGTakesTime)*1000)),' ms.   ']);
-    
-    pause(0.2);               % by SZhao 20210823, to let the DAQ after PD wait so that the transient from IM has settled down
-    
-    % Query maximum capabilities
-%     [MAXIMUMNUMBEROFWAVEFORMS,WAVEFORMQUANTUM,MINIMUMWAVEFORMSIZE,MAXIMUMWAVEFORMSIZE] = invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'queryarbwfmcapabilities');
-%     disp('Max number of waveforms is ' + string(MAXIMUMNUMBEROFWAVEFORMS) + 'Max waveform size is ' + string(MAXIMUMWAVEFORMSIZE));
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%%%%%%%%%%%%%%%%% Read OSC waveform %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Acquiredata starts
-    OSCTakesTime = tic;
-    if AverageTime~=1 % if average time is not 1, then these arrays should be reset.
-        VItensityAmp = VItensityAmp*0;
-        if OSCChannelNumber == 2
-            VItensityMod = VItensityMod*0;
-        end
-    end
-
-    % Acquire several data to do average
-    for AverageNum=1:AverageTime
-        % Configure the board's sample rate, input, and trigger settings
-        % if ~configureBoard(handles)
-        %     fprintf('Error: Board configuration failed\n');
-        %     return
-        % end
-        
-        % set default return code to indicate failure
-        result = false;
-        % Create an array of DMA buffers
-        OSCbuffers = cell(1, OSCbufferCount);
-        for j = 1 : OSCbufferCount
-            OSCpbuffer = AlazarAllocBuffer(OSCboardHandle, OSCbytesPerBuffer);
-            if OSCpbuffer == 0
-                fprintf('Error: AlazarAllocBuffer %u samples failed\n', OSCsamplesPerBuffer);
-                return
-            end
-            OSCbuffers(1, j) = { OSCpbuffer };
-        end
-
-        OSCretCode = AlazarBeforeAsyncRead(OSCboardHandle, OSCchannelMask, 0, OSCBufferSamples, 1, hex2dec('7FFFFFFF'), ADMA_EXTERNAL_STARTCAPTURE + ADMA_TRIGGERED_STREAMING);
-        if OSCretCode ~= ApiSuccess
-            fprintf('Error: AlazarBeforeAsyncRead failed -- %s\n', errorToText(OSCretCode));
-            return
-        end
-        % Post the buffers to the board
-        for bufferIndex = 1 : OSCbufferCount
-            OSCpbuffer = OSCbuffers{1, bufferIndex};
-            OSCretCode = AlazarPostAsyncBuffer(OSCboardHandle, OSCpbuffer, OSCbytesPerBuffer);
-            if OSCretCode ~= ApiSuccess
-                fprintf('Error: AlazarPostAsyncBuffer failed -- %s\n', errorToText(OSCretCode));
-                return
-            end
-        end
-        % Arm the board system to wait for triggers
-        OSCretCode = AlazarStartCapture(OSCboardHandle);
-        if OSCretCode ~= ApiSuccess
-            fprintf('Error: AlazarStartCapture failed -- %s\n', errorToText(OSCretCode));
-            return
-        end
-
-        OSCbuffersCompleted = 0;
-        OSCcaptureDone = false;
-        OSCsuccess = false;
-        % if more than one buffer is used, we need to pre-define OSCFinaldata.
-        if OSCBufferNumberInOneAcq ~=1 
-            OSCFinaldata =[];
-        end
-
-
-        % OSC working ... 
-        while ~OSCcaptureDone
-            OSCbufferIndex = mod(OSCbuffersCompleted, OSCbufferCount) + 1;
-            OSCpbuffer = OSCbuffers{1, OSCbufferIndex};
-
-            % Wait for the first available buffer to be filled by the board
-            [OSCretCode, OSCboardHandle, OSCbufferOut] = ...
-                AlazarWaitAsyncBufferComplete(OSCboardHandle, OSCpbuffer, 5000);
-            if OSCretCode == ApiSuccess
-                % This buffer is full
-                OSCbufferFull = true;
-                OSCcaptureDone = false;
-            elseif OSCretCode == ApiWaitTimeout
-                % The wait timeout expired before this buffer was filled.
-                % The board may not be triggering, or the timeout period may be too short.
-                fprintf('Error: AlazarWaitAsyncBufferComplete timeout -- Verify trigger!\n');
-                OSCbufferFull = false;
-                OSCcaptureDone = true;
-            else
-                % The acquisition failed
-                fprintf('Error: AlazarWaitAsyncBufferComplete failed -- %s\n', errorToText(OSCretCode));
-                OSCbufferFull = false;
-                OSCcaptureDone = true;
-            end
-
-            if OSCbufferFull
-                % TODO: Process sample data in this buffer.
-                %
-                % NOTE:
-                %
-                % While you are processing this buffer, the board is already
-                % filling the next available buffer(s).
-                %
-                % You MUST finish processing this buffer and post it back to the
-                % board before the board fills all of its available DMA buffers
-                % and on-board memory.
-                %
-                % Records are arranged in the buffer as follows: R0A, R1A, R2A ... RnA, R0B,
-                % R1B, R2B ...
-                % with RXY the record number X of channel Y
-                %
-                % A 12-bit sample code is stored in the most significant bits of
-                % in each 16-bit sample value.
-                %
-                % Sample codes are unsigned by default. As a result:
-                % - a sample code of 0x0000 represents a negative full scale input signal.
-                % - a sample code of 0x8000 represents a ~0V signal.
-                % - a sample code of 0xFFFF represents a positive full scale input signal.
-                if OSCbytesPerSample == 1
-                    setdatatype(OSCbufferOut, 'uint8Ptr', 1, OSCsamplesPerBuffer);
-                else
-                    setdatatype(OSCbufferOut, 'uint16Ptr', 1, OSCsamplesPerBuffer);
-                end
-                % Save data
-                if OSCBufferNumberInOneAcq ==1
-                    OSCFinaldata = double(OSCbufferOut.Value);
-                else
-                    OSCFinaldata = [OSCFinaldata,double(OSCbufferOut.Value)];
-                end
-                % Make the buffer available to be filled again by the board
-                OSCretCode = AlazarPostAsyncBuffer(OSCboardHandle, OSCpbuffer, OSCbytesPerBuffer);
-                if OSCretCode ~= ApiSuccess
-                    fprintf('Error: AlazarPostAsyncBuffer failed -- %s\n', errorToText(OSCretCode));
-                    OSCcaptureDone = true;
-                end
-                % Update progress
-                OSCbuffersCompleted = OSCbuffersCompleted + 1;
-                if OSCbuffersCompleted >= OSCbuffersPerAcquisition
-                    OSCcaptureDone = true;
-                    OSCsuccess = true;
-                end
-            end % if OSCbufferFull
-        end % while ~OSCcaptureDone
-
-        % Abort the acquisition
-        OSCretCode = AlazarAbortAsyncRead(OSCboardHandle);
-        if OSCretCode ~= ApiSuccess
-            fprintf('Error: AlazarAbortAsyncRead failed -- %s\n', errorToText(OSCretCode));
-        end
-        % Release the buffers
-        for OSCbufferIndex = 1:OSCbufferCount
-            OSCpbuffer = OSCbuffers{1, OSCbufferIndex};
-            OSCretCode = AlazarFreeBuffer(OSCboardHandle, OSCpbuffer);
-            if OSCretCode ~= ApiSuccess
-                fprintf('Error: AlazarFreeBuffer failed -- %s\n', errorToText(OSCretCode));
-            end
-            clear OSCpbuffer;
-        end
-        % set return code to indicate OSCsuccess
-        result = OSCsuccess;
-        OSCFinaldata = (OSCFinaldata - 32768)*400/32768; % convert 2^16 data to mV.
-
-        if result ~=1
-            fprintf('Error: Acquisition failed\n');
-            return
-        end
-
-        if OSCChannelNumber == 1
-            if AverageTime==1
-                VItensityAmp = OSCFinaldata(1:OSCNlengthPerChannel); % Channel A, amplified signal
-            else
-                VItensityAmp = VItensityAmp+OSCFinaldata(1:OSCNlengthPerChannel); % Channel A, amplified signal
-            end
-        else
-            VItensityAmp = OSCFinaldata(1:2:(OSCNlengthPerChannel-1)*2+1); % Channel A, amplified signal
-            VItensityMod = OSCFinaldata(2:2:(OSCNlengthPerChannel)*2); % Channel B, modulated signal
-            
-% %             test 20220607
+% can comment out below
+% % Feedback loop starts
+% for kLoopnum=1:NLoop
+%     WAVEFORMDATAARRAY(WAVEFORMSIZE) = 0; % for safty reason, so that the modulated light alway has some power. It takes 0.0023903 seconds
+%     AWGTakesTime = tic;
+%     % WAVEFORMSIZE = length(WAVEFORMDATAARRAY); 
+% 
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     %%%%%%%%%%%%%%%%%%%% Enable AWG output %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     % Disable the AWG if it is running. (To protect AWG)
+%     % ExistAWGICdevice = isfield(handles,'AWGdeviceObj');
+%     % if ExistAWGICdevice == 1
+%     %     invoke(handles.AWGdeviceObj.Utility,'disable');
+%     % end
+%     % [hObject,handles] = AWGInitializationFunction(hObject, 1, handles);
+% 
+% %     whos WAVEFORMDATAARRAY
+% 
+%     % clear AWG memory so it won't be loaded with unneeded waveforms from
+%     % previous loops -- by SZhao 01062021
+%     invoke(handles.AWGdeviceObj.Waveformcontrol,'abortgeneration');
+%     invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarysequenceoutput,'cleararbmemory');
+%         
+%     % Create arbitrary waveform, 0.074 s .... 
+% %                                230 ms for 3.8 M pulses
+%     [NIFGEN_ATTR_ARB_WAVEFORM_HANDLE] = invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'createwaveformf64',ChannelName,WAVEFORMSIZE,WAVEFORMDATAARRAY);
+% 
+% 
+%     % Configure arbitrary waveform, 0.01 s
+%     invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'configurearbwaveform',ChannelName,NIFGEN_ATTR_ARB_WAVEFORM_HANDLE,NIFGEN_ATTR_ARB_GAIN,NIFGEN_ATTR_ARB_OFFSET);
+% 
+%     % Initiate the Waveform Generation, 0.016 s
+%     invoke(handles.AWGdeviceObj.Waveformcontrol,'initiategeneration');
+% 
+%     % Enable the Output, 0.02 s
+%     invoke(handles.AWGdeviceObj.Configuration,'configureoutputenabled', ChannelName, Enabled);
+%     % disp('AWG is working');
+%     fprintf(['AWG: ',num2str(round(toc(AWGTakesTime)*1000)),' ms.   ']);
+%     
+%     pause(0.4);               % by SZhao 20210120, to let the DAQ after PD wait so that the transient from IM has settled down
+%     
+%     % Query maximum capabilities
+% %     [MAXIMUMNUMBEROFWAVEFORMS,WAVEFORMQUANTUM,MINIMUMWAVEFORMSIZE,MAXIMUMWAVEFORMSIZE] = invoke(handles.AWGdeviceObj.Configurationfunctionsarbitrarywaveformoutput,'queryarbwfmcapabilities');
+% %     disp('Max number of waveforms is ' + string(MAXIMUMNUMBEROFWAVEFORMS) + 'Max waveform size is ' + string(MAXIMUMWAVEFORMSIZE));
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     %%%%%%%%%%%%%%%%%%%% Read OSC waveform %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     % Acquiredata starts
+%     OSCTakesTime = tic;
+%     if AverageTime~=1 % if average time is not 1, then these arrays should be reset.
+%         VItensityAmp = VItensityAmp*0;
+%         if OSCChannelNumber == 2
+%             VItensityMod = VItensityMod*0;
+%         end
+%     end
+% 
+%     % Acquire several data to do average
+%     for AverageNum=1:AverageTime
+%         % Configure the board's sample rate, input, and trigger settings
+%         % if ~configureBoard(handles)
+%         %     fprintf('Error: Board configuration failed\n');
+%         %     return
+%         % end
+%         
+%         % set default return code to indicate failure
+%         result = false;
+%         % Create an array of DMA buffers
+%         OSCbuffers = cell(1, OSCbufferCount);
+%         for j = 1 : OSCbufferCount
+%             OSCpbuffer = AlazarAllocBuffer(OSCboardHandle, OSCbytesPerBuffer);
+%             if OSCpbuffer == 0
+%                 fprintf('Error: AlazarAllocBuffer %u samples failed\n', OSCsamplesPerBuffer);
+%                 return
+%             end
+%             OSCbuffers(1, j) = { OSCpbuffer };
+%         end
+% 
+%         OSCretCode = AlazarBeforeAsyncRead(OSCboardHandle, OSCchannelMask, 0, OSCBufferSamples, 1, hex2dec('7FFFFFFF'), ADMA_EXTERNAL_STARTCAPTURE + ADMA_TRIGGERED_STREAMING);
+%         if OSCretCode ~= ApiSuccess
+%             fprintf('Error: AlazarBeforeAsyncRead failed -- %s\n', errorToText(OSCretCode));
+%             return
+%         end
+%         % Post the buffers to the board
+%         for bufferIndex = 1 : OSCbufferCount
+%             OSCpbuffer = OSCbuffers{1, bufferIndex};
+%             OSCretCode = AlazarPostAsyncBuffer(OSCboardHandle, OSCpbuffer, OSCbytesPerBuffer);
+%             if OSCretCode ~= ApiSuccess
+%                 fprintf('Error: AlazarPostAsyncBuffer failed -- %s\n', errorToText(OSCretCode));
+%                 return
+%             end
+%         end
+%         % Arm the board system to wait for triggers
+%         OSCretCode = AlazarStartCapture(OSCboardHandle);
+%         if OSCretCode ~= ApiSuccess
+%             fprintf('Error: AlazarStartCapture failed -- %s\n', errorToText(OSCretCode));
+%             return
+%         end
+% 
+%         OSCbuffersCompleted = 0;
+%         OSCcaptureDone = false;
+%         OSCsuccess = false;
+%         % if more than one buffer is used, we need to pre-define OSCFinaldata.
+%         if OSCBufferNumberInOneAcq ~=1 
+%             OSCFinaldata =[];
+%         end
+% 
+% 
+%         % OSC working ... 
+%         while ~OSCcaptureDone
+%             OSCbufferIndex = mod(OSCbuffersCompleted, OSCbufferCount) + 1;
+%             OSCpbuffer = OSCbuffers{1, OSCbufferIndex};
+% 
+%             % Wait for the first available buffer to be filled by the board
+%             [OSCretCode, OSCboardHandle, OSCbufferOut] = ...
+%                 AlazarWaitAsyncBufferComplete(OSCboardHandle, OSCpbuffer, 5000);
+%             if OSCretCode == ApiSuccess
+%                 % This buffer is full
+%                 OSCbufferFull = true;
+%                 OSCcaptureDone = false;
+%             elseif OSCretCode == ApiWaitTimeout
+%                 % The wait timeout expired before this buffer was filled.
+%                 % The board may not be triggering, or the timeout period may be too short.
+%                 fprintf('Error: AlazarWaitAsyncBufferComplete timeout -- Verify trigger!\n');
+%                 OSCbufferFull = false;
+%                 OSCcaptureDone = true;
+%             else
+%                 % The acquisition failed
+%                 fprintf('Error: AlazarWaitAsyncBufferComplete failed -- %s\n', errorToText(OSCretCode));
+%                 OSCbufferFull = false;
+%                 OSCcaptureDone = true;
+%             end
+% 
+%             if OSCbufferFull
+%                 % TODO: Process sample data in this buffer.
+%                 %
+%                 % NOTE:
+%                 %
+%                 % While you are processing this buffer, the board is already
+%                 % filling the next available buffer(s).
+%                 %
+%                 % You MUST finish processing this buffer and post it back to the
+%                 % board before the board fills all of its available DMA buffers
+%                 % and on-board memory.
+%                 %
+%                 % Records are arranged in the buffer as follows: R0A, R1A, R2A ... RnA, R0B,
+%                 % R1B, R2B ...
+%                 % with RXY the record number X of channel Y
+%                 %
+%                 % A 12-bit sample code is stored in the most significant bits of
+%                 % in each 16-bit sample value.
+%                 %
+%                 % Sample codes are unsigned by default. As a result:
+%                 % - a sample code of 0x0000 represents a negative full scale input signal.
+%                 % - a sample code of 0x8000 represents a ~0V signal.
+%                 % - a sample code of 0xFFFF represents a positive full scale input signal.
+%                 if OSCbytesPerSample == 1
+%                     setdatatype(OSCbufferOut, 'uint8Ptr', 1, OSCsamplesPerBuffer);
+%                 else
+%                     setdatatype(OSCbufferOut, 'uint16Ptr', 1, OSCsamplesPerBuffer);
+%                 end
+%                 % Save data
+%                 if OSCBufferNumberInOneAcq ==1
+%                     OSCFinaldata = double(OSCbufferOut.Value);
+%                 else
+%                     OSCFinaldata = [OSCFinaldata,double(OSCbufferOut.Value)];
+%                 end
+%                 % Make the buffer available to be filled again by the board
+%                 OSCretCode = AlazarPostAsyncBuffer(OSCboardHandle, OSCpbuffer, OSCbytesPerBuffer);
+%                 if OSCretCode ~= ApiSuccess
+%                     fprintf('Error: AlazarPostAsyncBuffer failed -- %s\n', errorToText(OSCretCode));
+%                     OSCcaptureDone = true;
+%                 end
+%                 % Update progress
+%                 OSCbuffersCompleted = OSCbuffersCompleted + 1;
+%                 if OSCbuffersCompleted >= OSCbuffersPerAcquisition
+%                     OSCcaptureDone = true;
+%                     OSCsuccess = true;
+%                 end
+%             end % if OSCbufferFull
+%         end % while ~OSCcaptureDone
+% 
+%         % Abort the acquisition
+%         OSCretCode = AlazarAbortAsyncRead(OSCboardHandle);
+%         if OSCretCode ~= ApiSuccess
+%             fprintf('Error: AlazarAbortAsyncRead failed -- %s\n', errorToText(OSCretCode));
+%         end
+%         % Release the buffers
+%         for OSCbufferIndex = 1:OSCbufferCount
+%             OSCpbuffer = OSCbuffers{1, OSCbufferIndex};
+%             OSCretCode = AlazarFreeBuffer(OSCboardHandle, OSCpbuffer);
+%             if OSCretCode ~= ApiSuccess
+%                 fprintf('Error: AlazarFreeBuffer failed -- %s\n', errorToText(OSCretCode));
+%             end
+%             clear OSCpbuffer;
+%         end
+%         % set return code to indicate OSCsuccess
+%         result = OSCsuccess;
+%         OSCFinaldata = (OSCFinaldata - 32768)*400/32768; % convert 2^16 data to mV.
+% 
+%         if result ~=1
+%             fprintf('Error: Acquisition failed\n');
+%             return
+%         end
+% 
+%         if OSCChannelNumber == 1
+%             if AverageTime==1
+%                 VItensityAmp = OSCFinaldata(1:OSCNlengthPerChannel); % Channel A, amplified signal
+%             else
+%                 VItensityAmp = VItensityAmp+OSCFinaldata(1:OSCNlengthPerChannel); % Channel A, amplified signal
+%             end
+%         else
 %             VItensityAmp = VItensityAmp+OSCFinaldata(1:2:(OSCNlengthPerChannel-1)*2+1); % Channel A, amplified signal
 %             VItensityMod = VItensityMod+OSCFinaldata(2:2:(OSCNlengthPerChannel)*2); % Channel B, modulated signal
-        end
-    end % End for average of OSC acquisition
-    % Acquiredata End here
-
-    fprintf(['OSC: ',num2str(round(toc(OSCTakesTime)*1000)),' ms.   ']);
-    % figure(100)
-    % plot(VItensityAmp);
-    
-%     invoke(handles.AWGdeviceObj.Waveformcontrol,'abortgeneration');  % for troubleshooting jumpiness, by SZhao 20210127
-    PostProcessTakesTime = tic;
-
-    % Depends on how many channels, there are two codes here. One channel code 
-    % is in use and it is ready. Two channel code is not in use, so it is not optimized.
-%     if OSCChannelNumber == 1       % used to match the end in line2896
-        if AverageTime~=1 % average
-            VItensityAmp = VItensityAmp/AverageTime;
-            VItensityMod = VItensityMod/AverageTime;
-        end
-        % Save data
-        if DataSaveSaveData == 'Yes'
-            save([get(handles.edit23, 'String'),'\',PresentFileName,'_Amp_signal_Loop_',num2str(kLoopnum)],'VItensityAmp');
-        end
-        if FeedbackLoopRawData == 'Yes'
-            figure (12)
-            plot(VTimeOSC/1e-6,VItensityAmp);
-            % hold on;
-            xlabel('Time/us');
-            ylabel('Voltage/mV');
-            xlim([0,max(VTimeOSC/1e-6)-0.0001]);
-            ylim([-100,400]);
-            title('Channel A, amplified signal');
-        end
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %%%%%%%%%%%%%%%%%%%% processing waveform %%%%%%%%%%%%%%%%%%%%%%%%%%
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % Here assuming AWG sampling rate 32 MHz, laser rep rate 32 MHz, OSC sampling rate 672 MHz.
-%         testTime = tic;
-
-%         VIntAmpMatrix = vec2mat(VItensityAmp(VItensityAmpPulseStart:VItensityAmpPulseEnd),SamRatioOscToAWG); % 0.1956 s ... 0.26 s for 114 MHz laser    ******This is slow! Use reshape() instead.      
-%         VIntAmpPeakArray = max(VIntAmpMatrix, [], 2); % Find the peak of each pulse
-%         VIntAmpPeakArray = VIntAmpPeakArray'; % Take the transpose, so now VIntAmpPeakArray is a row vector (1 * n)
-        
-        % Use reshape() function to isolate each pulse into a column
-        VIntAmpMatrix = reshape(VItensityAmp(VItensityAmpPulseStart:VItensityAmpPulseEnd),SamRatioOscToAWG,[]); % 8 * col matrix
-        VIntAmpPeakArray = max(VIntAmpMatrix); % Find the peak of each pulse (find the max of each column) % output is 1 * n
-        
-        VIntModMatrix = reshape(VItensityMod(VItensityModPulseStart:VItensityModPulseEnd),SamRatioOscToAWG,[]); % 8 * col matrix
-        VIntModPeakArray = max(VIntModMatrix); % Find the peak of each pulse (find the max of each column) % output is 1 * n
-%         fprintf(['this step takes ',num2str(round(toc(testTime)*1000)),' ms.   \n'])  
-
-%         whos VIntAmpMatrix
-%         whos VIntAmpPeakArray
-        if PulsePeakTest ~=0
-            figure
-            PulseStartTest = WaveChannelAStartPoint(1) + SamRatioOscToAWG * (PulsePeakTest-1);
-            PulseEndTest   = PulseStartTest + SamRatioOscToAWG * 1 -1;
-            plot(VTimeOSC(PulseStartTest:PulseEndTest)/1e-6,VItensityAmp(PulseStartTest:PulseEndTest),'o');
-            hold on
-            PulseStartTestWave = WaveChannelAStartPoint(1) + SamRatioOscToAWG * (PulsePeakTest-1-3);
-            PulseEndTestWave   = PulseStartTestWave + SamRatioOscToAWG * 7 -1;
-            plot(VTimeOSC(PulseStartTestWave:PulseEndTestWave)/1e-6,VItensityAmp(PulseStartTestWave:PulseEndTestWave),'-');
-            hold on
-            title(['Pulse ',num2str(PulsePeakTest)]);
-            xlabel('Time/us');
-            ylabel('Intensity/mV');
-        end
-
-        % Process pulses that are One!!! It takes 0.0161 seconds
-        VIntAmpPeakArrayOnOne = VIntAmpPeakArray.*WavefommIdealPulseOnOne;           % Choose only area with pulse on
-        VIntAmpPeakArrayOneOneMean(kLoopnum) = sum(VIntAmpPeakArrayOnOne)/NumPulseOnOne;   % Average value
-        VIntAmpPeakArrayOnOneNorm = VIntAmpPeakArrayOnOne/max(VIntAmpPeakArrayOnOne);     % Normalize, [0, 1]
-        VIntAmpPeakArrayOnOneNormMean = sum(VIntAmpPeakArrayOnOneNorm)/NumPulseOnOne;       % Mean value of pulse peak
-        VIntAmpPeakArrayOnOneFluc = abs(VIntAmpPeakArrayOnOneNorm-VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
-        VIntAmpPeakArrayOnOneFlucRatio = VIntAmpPeakArrayOnOneFluc/VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne;   % Fluctuation ratio
-        VIntAmpPeakArrayOnOneAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio)/NumPulseOnOne;            % average fluctuation
-        VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) = sqrt(sum(VIntAmpPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne);         % RMS fluctuation modified by SZhao 20210106
-        VIntAmpPeakArrayOnOneMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne;         % Mean squared fluctuation modified by SZhao 20210106
-        VIntAmpPeakArrayOnOneMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnOneFlucRatio);
-        
-%         % code below by SZhao 20210205 to determine noise floor
-%         VIntAmpPeakArrayOnOneFluc2 = (VIntAmpPeakArrayOnOneNorm-VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
-%         VIntAmpPeakArrayOnOneFlucRatio2 = VIntAmpPeakArrayOnOneFluc2/VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne;   % Fluctuation ratio
-%         [maxRatio,indexMax] = max(VIntAmpPeakArrayOnOneFlucRatio2);
-%         [minRatio,indexMin] = min(VIntAmpPeakArrayOnOneFlucRatio2);
-%         disp('indices of max/min are ' + string(indexMax) + '  ' + string(indexMin));
-
-        % Process pulses that are not off, It takes 0.0161 seconds 
-        %                                           50 ms for 3.8 M pulses
-        % can be discarded maybe to save 50 ms? 20210519
-        VIntAmpPeakArrayOn = VIntAmpPeakArray.*WavefommIdealPulseOn;           % Choose only area with pulse on
-        VIntAmpPeakArrayMeanOn(kLoopnum) = sum(VIntAmpPeakArrayOn)/NumPulseOn;   % Average value
-        VIntAmpPeakArrayOnNorm = VIntAmpPeakArrayOn/max(VIntAmpPeakArrayOn);     % Normalize, [0, 1]
-        VIntAmpPeakArrayOnNormMean = sum(VIntAmpPeakArrayOnNorm)/NumPulseOn;       % Mean value of pulse peak
-        VIntAmpPeakArrayOnFluc = abs(VIntAmpPeakArrayOnNorm-VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak); % Deviation from ideal peak
-
-        VIntAmpPeakArrayOnFlucRatio = VIntAmpPeakArrayOnFluc/VIntAmpPeakArrayOnNormMean;   % Fluctuation ratio
-        VIntAmpPeakArrayOnAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio)/NumPulseOn;            % average fluctuation
-        VIntAmpPeakArrayOnRMSFluc(kLoopnum) = sqrt(sum(VIntAmpPeakArrayOnFlucRatio.^2)/NumPulseOn);         % RMS fluctuation modified by SZhao 01062021
-        VIntAmpPeakArrayOnMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnFlucRatio);
-        
-        if VIntAmpPeakArrayOnRMSFluc(kLoopnum) > 1.5*lastRMS                            % if the RMS is jumpy due to AWG unstable DC level, then skip this iteration
-            continue;
-        end
-        lastRMS = VIntAmpPeakArrayOnRMSFluc(kLoopnum);
-
-        % figure
-        % plot(VTimeAWG,VIntAmpPeakArrayOnNorm,'b');hold on
-        % plot(VTimeAWG,VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak,'k');hold on
-        % plot(VTimeAWG,VIntAmpPeakArrayOnFluc,'r');hold on
-        % plot(VTimeAWG,WaveformIdealPeak,'--g');hold on
-        % plot(VTimeAWG,VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne,'k');hold on
-        % plot(VTimeAWG,VIntAmpPeakArrayOnOneFluc,'r');hold on
-        % plot(VTimeAWG,VIntAmpPeakArrayOn,'--k');hold on
-        % plot(VTimeAWG,VIntAmpPeakArrayOnOneNorm,'--g');hold on
-
-        % figure
-        % plot(VTimeOSC/1e-6-ChannelAStartPoint/1e-6,VItensityAmp);hold on;
-        % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm*20,'k');hold on
-
-        % hold on;
-        % xlabel('Time/us');
-        % ylabel('Voltage/mV');
-        % 
-        % fprintf(['Test 2 takes',num2str(toc(FeedbackLoopTimeBeforeLoop)),' seconds.\n']);
-        % % 
-        % figure (13)
-        % plot(VTimeAWG/1e-6,VTimeAWG.*0+VIntAmpPeakArrayOnNormMean,'--r');hold on
-        % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnNorm,'-.k');hold on
-        % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnFluc,'-b');hold on
-        % xlim([0,40]);
-        
-        
-
-    %     subplot(2, 3, 4);
-    %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnNorm);hold on
-    %     if kLoopnum == NLoop
-    %         % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
-    %         plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*VIntAmpPeakArrayOneOneMean(kLoopnum),'-.r'); hold on
-    %         plot(VTimeAWG/1e-6,WaveformIdealPeak*VIntAmpPeakArrayOneOneMean(kLoopnum),'--k','linewidth',2); hold on
-    %     end
-    %     plot(VTimeAWG/1e-6,VIntAmpPeakArrayOn,'b');
-    %     xlabel('Time/us');
-    %     ylabel('Voltage/mV');
-    %     title('Envelope of output waveforms');
-        
-
-
-    %     subplot(2, 3, 1);
-    %     if kLoopnum == NLoop
-    %     % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
-    %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*0.8,'-.r'); hold on
-    %     plot(VTimeAWG/1e-6,WaveformIdealPeak*0.8,'--k','linewidth',2); hold on
-    %     end
-    %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm,'b');
-    %     xlabel('Time/us');
-    %     ylabel('Intensity/A.U.');
-    %     title('Envelope of electronic waveforms');
-
-
-
-        % Save data
-        if DataSaveSaveData == 'Yes'
-            save([get(handles.edit23, 'String'),'\',PresentFileName,'_AWG_pattern_Loop_',num2str(kLoopnum)],'WAVEFORMDATAARRAYNorm');
-        end
-
-        % % Process pulses that are One!!!
-        % VIntAmpPeakArrayOnOne = VIntAmpPeakArray.*WavefommIdealPulseOnOne;           % Choose only area with pulse on
-        % % VIntAmpPeakArrayOneOneMean(kLoopnum) = sum(VIntAmpPeakArrayOnOne)/NumPulseOnOne;   % Average value
-        % VIntAmpPeakArrayOnOneNorm = VIntAmpPeakArrayOnOne/max(VIntAmpPeakArrayOnOne);     % Normalize, [0, 1]
-        % VIntAmpPeakArrayOnOneNormMean = sum(VIntAmpPeakArrayOnOneNorm)/NumPulseOnOne;       % Mean value of pulse peak
-        % VIntAmpPeakArrayOnOneFluc = abs(VIntAmpPeakArrayOnOneNorm-VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
-        % VIntAmpPeakArrayOnOneFlucRatio = VIntAmpPeakArrayOnOneFluc/VIntAmpPeakArrayOnOneNormMean;   % Fluctuation ratio
-        % VIntAmpPeakArrayOnOneAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio)/NumPulseOnOne;            % average fluctuation
-        % VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne;         % RMS fluctuation
-        % VIntAmpPeakArrayOnOneMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnOneFlucRatio);
-        % 
-        % % Process pulses that are not off
-        % VIntAmpPeakArrayOn = VIntAmpPeakArray.*WavefommIdealPulseOn;           % Choose only area with pulse on
-        % VIntAmpPeakArrayMeanOn(kLoopnum) = sum(VIntAmpPeakArrayOn)/NumPulseOn;   % Average value
-        % VIntAmpPeakArrayOnNorm = VIntAmpPeakArrayOn/max(VIntAmpPeakArrayOn);     % Normalize, [0, 1]
-        % VIntAmpPeakArrayOnNormMean = sum(VIntAmpPeakArrayOnNorm)/NumPulseOn;       % Mean value of pulse peak
-        % VIntAmpPeakArrayOnFluc = abs(VIntAmpPeakArrayOnNorm-VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak); % Deviation from ideal peak
-        % 
-        % VIntAmpPeakArrayOnFlucRatio = VIntAmpPeakArrayOnFluc/VIntAmpPeakArrayOnNormMean;   % Fluctuation ratio
-        % VIntAmpPeakArrayOnAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio)/NumPulseOn;            % average fluctuation
-        % VIntAmpPeakArrayOnRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio.^2)/NumPulseOn;         % RMS fluctuation
-        % VIntAmpPeakArrayOnMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnFlucRatio);
-
-        % % use measured waveform to generate a new waveform for AWG input: WAVEFORMDATAARRAY.
-        WaveformComp = VIntAmpPeakArrayOnOneNorm - VIntAmpPeakArrayOnOneNormMean.*WaveformIdealPeak;
-        WaveformComp = WaveformComp.*WavefommIdealPulseOnOne;
-        %if mod(kLoopnum,2) == 1 
-        %    figure; plot(VTimeAWG, WaveformComp)
-        %end
-        %disp(VIntAmpPeakArrayOnOneNormMean)
-        % use measured waveform to generate a new waveform for AWG input: WAVEFORMDATAARRAY.
-%         WaveformComp = VIntAmpPeakArrayOnNorm - VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak;
-%         WaveformComp = WaveformComp.*WavefommIdealPulseOn;
-
-        % figure
-        % plot(VTimeAWG,VIntAmpPeakArrayOnNorm,'b');hold on
-        % plot(VTimeAWG,VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak,'k');hold on
-        % plot(VTimeAWG,WaveformComp,'r');hold on
-        % 
-        % figure (11)
-        
-        
-        
-%         WaveformCompFactor = 4;
-%         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=0.5/100
-%             WaveformCompFactor = 8;
 %         end
-%         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=0.2/100
-%             WaveformCompFactor = 16;
+%     end % End for average of OSC acquisition
+%     % Acquiredata End here
+% 
+%     fprintf(['OSC: ',num2str(round(toc(OSCTakesTime)*1000)),' ms.   ']);
+%     % figure(100)
+%     % plot(VItensityAmp);
+%     
+% %     invoke(handles.AWGdeviceObj.Waveformcontrol,'abortgeneration');  % for troubleshooting jumpiness, by SZhao 20210127
+%     PostProcessTakesTime = tic;
+% 
+%     % Depends on how many channels, there are two codes here. One channel code 
+%     % is in use and it is ready. Two channel code is not in use, so it is not optimized.
+%     if OSCChannelNumber == 1
+%         if AverageTime~=1 % average
+%             VItensityAmp = VItensityAmp/AverageTime;
 %         end
-%         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=0.02/100
-%             WaveformCompFactor = 32;
+%         % Save data
+%         if DataSaveSaveData == 'Yes'
+%             save([get(handles.edit23, 'String'),'\',PresentFileName,'_Amp_signal_Loop_',num2str(kLoopnum)],'VItensityAmp');
 %         end
+%         if FeedbackLoopRawData == 'Yes'
+%             figure (12)
+%             plot(VTimeOSC/1e-6,VItensityAmp);
+%             % hold on;
+%             xlabel('Time/us');
+%             ylabel('Voltage/mV');
+%             xlim([0,max(VTimeOSC/1e-6)-0.0001]);
+%             ylim([-100,400]);
+%             title('Channel A, amplified signal');
+%         end
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         %%%%%%%%%%%%%%%%%%%% processing waveform %%%%%%%%%%%%%%%%%%%%%%%%%%
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         % Here assuming AWG sampling rate 32 MHz, laser rep rate 32 MHz, OSC sampling rate 672 MHz.
+% %         testTime = tic;
+% 
+% %         VIntAmpMatrix = vec2mat(VItensityAmp(VItensityAmpPulseStart:VItensityAmpPulseEnd),SamRatioOscToAWG); % 0.1956 s ... 0.26 s for 114 MHz laser    ******This is slow! Use reshape() instead.      
+% %         VIntAmpPeakArray = max(VIntAmpMatrix, [], 2); % Find the peak of each pulse
+% %         VIntAmpPeakArray = VIntAmpPeakArray'; % Take the transpose, so now VIntAmpPeakArray is a row vector (1 * n)
+%         
+%         % Use reshape() function to isolate each pulse into a column
+%         VIntAmpMatrix = reshape(VItensityAmp(VItensityAmpPulseStart:VItensityAmpPulseEnd),SamRatioOscToAWG,[]); % 8 * col matrix
+%         VIntAmpPeakArray = max(VIntAmpMatrix); % Find the peak of each pulse (find the max of each column) % output is 1 * n
+% %         fprintf(['this step takes ',num2str(round(toc(testTime)*1000)),' ms.   \n'])  
+% 
+% %         whos VIntAmpMatrix
+% %         whos VIntAmpPeakArray
+%         if PulsePeakTest ~=0
+%             figure
+%             PulseStartTest = WaveChannelAStartPoint(1) + SamRatioOscToAWG * (PulsePeakTest-1);
+%             PulseEndTest   = PulseStartTest + SamRatioOscToAWG * 1 -1;
+%             plot(VTimeOSC(PulseStartTest:PulseEndTest)/1e-6,VItensityAmp(PulseStartTest:PulseEndTest),'o');
+%             hold on
+%             PulseStartTestWave = WaveChannelAStartPoint(1) + SamRatioOscToAWG * (PulsePeakTest-1-3);
+%             PulseEndTestWave   = PulseStartTestWave + SamRatioOscToAWG * 7 -1;
+%             plot(VTimeOSC(PulseStartTestWave:PulseEndTestWave)/1e-6,VItensityAmp(PulseStartTestWave:PulseEndTestWave),'-');
+%             hold on
+%             title(['Pulse ',num2str(PulsePeakTest)]);
+%             xlabel('Time/us');
+%             ylabel('Intensity/mV');
+%         end
+% 
+%         % Process pulses that are One!!! It takes 0.0161 seconds
+%         VIntAmpPeakArrayOnOne = VIntAmpPeakArray.*WavefommIdealPulseOnOne;           % Choose only area with pulse on
+%         VIntAmpPeakArrayOneOneMean(kLoopnum) = sum(VIntAmpPeakArrayOnOne)/NumPulseOnOne;   % Average value
+%         VIntAmpPeakArrayOnOneNorm = VIntAmpPeakArrayOnOne/max(VIntAmpPeakArrayOnOne);     % Normalize, [0, 1]
+%         VIntAmpPeakArrayOnOneNormMean = sum(VIntAmpPeakArrayOnOneNorm)/NumPulseOnOne;       % Mean value of pulse peak
+%         VIntAmpPeakArrayOnOneFluc = abs(VIntAmpPeakArrayOnOneNorm-VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
+%         VIntAmpPeakArrayOnOneFlucRatio = VIntAmpPeakArrayOnOneFluc/VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne;   % Fluctuation ratio
+%         VIntAmpPeakArrayOnOneAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio)/NumPulseOnOne;            % average fluctuation
+%         VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) = sqrt(sum(VIntAmpPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne);         % RMS fluctuation modified by SZhao 20210106
+%         VIntAmpPeakArrayOnOneMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne;         % Mean squared fluctuation modified by SZhao 20210106
+%         VIntAmpPeakArrayOnOneMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnOneFlucRatio);
+%         
+% %         % code below by SZhao 20210205 to determine noise floor
+% %         VIntAmpPeakArrayOnOneFluc2 = (VIntAmpPeakArrayOnOneNorm-VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
+% %         VIntAmpPeakArrayOnOneFlucRatio2 = VIntAmpPeakArrayOnOneFluc2/VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne;   % Fluctuation ratio
+% %         [maxRatio,indexMax] = max(VIntAmpPeakArrayOnOneFlucRatio2);
+% %         [minRatio,indexMin] = min(VIntAmpPeakArrayOnOneFlucRatio2);
+% %         disp('indices of max/min are ' + string(indexMax) + '  ' + string(indexMin));
+% 
+%         % Process pulses that are not off, It takes 0.0161 seconds 
+%         %                                           50 ms for 3.8 M pulses
+%         % can be discarded maybe to save 50 ms? 20210519
+%         VIntAmpPeakArrayOn = VIntAmpPeakArray.*WavefommIdealPulseOn;           % Choose only area with pulse on
+%         VIntAmpPeakArrayMeanOn(kLoopnum) = sum(VIntAmpPeakArrayOn)/NumPulseOn;   % Average value
+%         VIntAmpPeakArrayOnNorm = VIntAmpPeakArrayOn/max(VIntAmpPeakArrayOn);     % Normalize, [0, 1]
+%         VIntAmpPeakArrayOnNormMean = sum(VIntAmpPeakArrayOnNorm)/NumPulseOn;       % Mean value of pulse peak
+%         VIntAmpPeakArrayOnFluc = abs(VIntAmpPeakArrayOnNorm-VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak); % Deviation from ideal peak
+% 
+%         VIntAmpPeakArrayOnFlucRatio = VIntAmpPeakArrayOnFluc/VIntAmpPeakArrayOnNormMean;   % Fluctuation ratio
+%         VIntAmpPeakArrayOnAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio)/NumPulseOn;            % average fluctuation
+%         VIntAmpPeakArrayOnRMSFluc(kLoopnum) = sqrt(sum(VIntAmpPeakArrayOnFlucRatio.^2)/NumPulseOn);         % RMS fluctuation modified by SZhao 01062021
+%         VIntAmpPeakArrayOnMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnFlucRatio);
+% 
+%         % figure
+%         % plot(VTimeAWG,VIntAmpPeakArrayOnNorm,'b');hold on
+%         % plot(VTimeAWG,VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak,'k');hold on
+%         % plot(VTimeAWG,VIntAmpPeakArrayOnFluc,'r');hold on
+%         % plot(VTimeAWG,WaveformIdealPeak,'--g');hold on
+%         % plot(VTimeAWG,VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne,'k');hold on
+%         % plot(VTimeAWG,VIntAmpPeakArrayOnOneFluc,'r');hold on
+%         % plot(VTimeAWG,VIntAmpPeakArrayOn,'--k');hold on
+%         % plot(VTimeAWG,VIntAmpPeakArrayOnOneNorm,'--g');hold on
+% 
+%         % figure
+%         % plot(VTimeOSC/1e-6-ChannelAStartPoint/1e-6,VItensityAmp);hold on;
+%         % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm*20,'k');hold on
+% 
+%         % hold on;
+%         % xlabel('Time/us');
+%         % ylabel('Voltage/mV');
+%         % 
+%         % fprintf(['Test 2 takes',num2str(toc(FeedbackLoopTimeBeforeLoop)),' seconds.\n']);
+%         % % 
+%         % figure (13)
+%         % plot(VTimeAWG/1e-6,VTimeAWG.*0+VIntAmpPeakArrayOnNormMean,'--r');hold on
+%         % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnNorm,'-.k');hold on
+%         % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnFluc,'-b');hold on
+%         % xlim([0,40]);
+%         
+%         
+% 
+%     %     subplot(2, 3, 4);
+%     %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnNorm);hold on
+%     %     if kLoopnum == NLoop
+%     %         % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
+%     %         plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*VIntAmpPeakArrayOneOneMean(kLoopnum),'-.r'); hold on
+%     %         plot(VTimeAWG/1e-6,WaveformIdealPeak*VIntAmpPeakArrayOneOneMean(kLoopnum),'--k','linewidth',2); hold on
+%     %     end
+%     %     plot(VTimeAWG/1e-6,VIntAmpPeakArrayOn,'b');
+%     %     xlabel('Time/us');
+%     %     ylabel('Voltage/mV');
+%     %     title('Envelope of output waveforms');
 %         
 % 
 % 
-%         WAVEFORMDATAARRAYNorm = WAVEFORMDATAARRAYNorm - WaveformComp/WaveformCompFactor;
-%         
-%         % In case: minimum of the waveform is less than 0.
-%         if min(WAVEFORMDATAARRAYNorm)<0
-%             WAVEFORMDATAARRAYNorm = (WAVEFORMDATAARRAYNorm-min(WAVEFORMDATAARRAYNorm)) / max((WAVEFORMDATAARRAYNorm-min(WAVEFORMDATAARRAYNorm)));
-%         else
-%             WAVEFORMDATAARRAYNorm = WAVEFORMDATAARRAYNorm / max(WAVEFORMDATAARRAYNorm);
+%     %     subplot(2, 3, 1);
+%     %     if kLoopnum == NLoop
+%     %     % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
+%     %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*0.8,'-.r'); hold on
+%     %     plot(VTimeAWG/1e-6,WaveformIdealPeak*0.8,'--k','linewidth',2); hold on
+%     %     end
+%     %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm,'b');
+%     %     xlabel('Time/us');
+%     %     ylabel('Intensity/A.U.');
+%     %     title('Envelope of electronic waveforms');
+% 
+% 
+% 
+%         % Save data
+%         if DataSaveSaveData == 'Yes'
+%             save([get(handles.edit23, 'String'),'\',PresentFileName,'_AWG_pattern_Loop_',num2str(kLoopnum)],'WAVEFORMDATAARRAYNorm');
 %         end
-        
-        
-                WaveformCompFactorArray = [
-        1           6
-        24/100      8
-        4/100       12
-        2/100       16
-        1/100       16
+% 
+%         % % Process pulses that are One!!!
+%         % VIntAmpPeakArrayOnOne = VIntAmpPeakArray.*WavefommIdealPulseOnOne;           % Choose only area with pulse on
+%         % % VIntAmpPeakArrayOneOneMean(kLoopnum) = sum(VIntAmpPeakArrayOnOne)/NumPulseOnOne;   % Average value
+%         % VIntAmpPeakArrayOnOneNorm = VIntAmpPeakArrayOnOne/max(VIntAmpPeakArrayOnOne);     % Normalize, [0, 1]
+%         % VIntAmpPeakArrayOnOneNormMean = sum(VIntAmpPeakArrayOnOneNorm)/NumPulseOnOne;       % Mean value of pulse peak
+%         % VIntAmpPeakArrayOnOneFluc = abs(VIntAmpPeakArrayOnOneNorm-VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
+%         % VIntAmpPeakArrayOnOneFlucRatio = VIntAmpPeakArrayOnOneFluc/VIntAmpPeakArrayOnOneNormMean;   % Fluctuation ratio
+%         % VIntAmpPeakArrayOnOneAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio)/NumPulseOnOne;            % average fluctuation
+%         % VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne;         % RMS fluctuation
+%         % VIntAmpPeakArrayOnOneMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnOneFlucRatio);
+%         % 
+%         % % Process pulses that are not off
+%         % VIntAmpPeakArrayOn = VIntAmpPeakArray.*WavefommIdealPulseOn;           % Choose only area with pulse on
+%         % VIntAmpPeakArrayMeanOn(kLoopnum) = sum(VIntAmpPeakArrayOn)/NumPulseOn;   % Average value
+%         % VIntAmpPeakArrayOnNorm = VIntAmpPeakArrayOn/max(VIntAmpPeakArrayOn);     % Normalize, [0, 1]
+%         % VIntAmpPeakArrayOnNormMean = sum(VIntAmpPeakArrayOnNorm)/NumPulseOn;       % Mean value of pulse peak
+%         % VIntAmpPeakArrayOnFluc = abs(VIntAmpPeakArrayOnNorm-VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak); % Deviation from ideal peak
+%         % 
+%         % VIntAmpPeakArrayOnFlucRatio = VIntAmpPeakArrayOnFluc/VIntAmpPeakArrayOnNormMean;   % Fluctuation ratio
+%         % VIntAmpPeakArrayOnAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio)/NumPulseOn;            % average fluctuation
+%         % VIntAmpPeakArrayOnRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio.^2)/NumPulseOn;         % RMS fluctuation
+%         % VIntAmpPeakArrayOnMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnFlucRatio);
+% 
+%         % % use measured waveform to generate a new waveform for AWG input: WAVEFORMDATAARRAY.
+%         WaveformComp = VIntAmpPeakArrayOnOneNorm - VIntAmpPeakArrayOnOneNormMean.*WaveformIdealPeak;
+%         WaveformComp = WaveformComp.*WavefommIdealPulseOnOne;
+% 
+%         % use measured waveform to generate a new waveform for AWG input: WAVEFORMDATAARRAY.
+% %         WaveformComp = VIntAmpPeakArrayOnNorm - VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak;
+% %         WaveformComp = WaveformComp.*WavefommIdealPulseOn;
+% 
+%         % figure
+%         % plot(VTimeAWG,VIntAmpPeakArrayOnNorm,'b');hold on
+%         % plot(VTimeAWG,VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak,'k');hold on
+%         % plot(VTimeAWG,WaveformComp,'r');hold on
+%         % 
+%         % figure (11)
+%         
+%         
+%         
+% %         WaveformCompFactor = 4;
+% %         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=0.5/100
+% %             WaveformCompFactor = 8;
+% %         end
+% %         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=0.2/100
+% %             WaveformCompFactor = 16;
+% %         end
+% %         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=0.02/100
+% %             WaveformCompFactor = 32;
+% %         end
+% %         
+% % 
+% % 
+% %         WAVEFORMDATAARRAYNorm = WAVEFORMDATAARRAYNorm - WaveformComp/WaveformCompFactor;
+% %         
+% %         % In case: minimum of the waveform is less than 0.
+% %         if min(WAVEFORMDATAARRAYNorm)<0
+% %             WAVEFORMDATAARRAYNorm = (WAVEFORMDATAARRAYNorm-min(WAVEFORMDATAARRAYNorm)) / max((WAVEFORMDATAARRAYNorm-min(WAVEFORMDATAARRAYNorm)));
+% %         else
+% %             WAVEFORMDATAARRAYNorm = WAVEFORMDATAARRAYNorm / max(WAVEFORMDATAARRAYNorm);
+% %         end
+%         
+%         
+%                 WaveformCompFactorArray = [
 %         1           6
-%         25/100       8
-%         16/100       16
-%         10/100       32
-%         1           6
-%         6/100       8
+%         32/100      8
+%         6/100       12
 %         2/100       16
-%         1/100       32
-%         1           24
-%         25/100       28
-%         10/100     16
-%         1/100    32
-
-        ];
-        % figure (11)
-        WaveformCompFactor = WaveformCompFactorArray(1,2);
-        if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=WaveformCompFactorArray(2,1)
-            WaveformCompFactor = WaveformCompFactorArray(2,2);
-        end
-        if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=WaveformCompFactorArray(3,1)
-            WaveformCompFactor = WaveformCompFactorArray(3,2);
-        end
-        if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=WaveformCompFactorArray(4,1)
-            WaveformCompFactor = WaveformCompFactorArray(4,2);
-        end
-        if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=WaveformCompFactorArray(5,1)
-            WaveformCompFactor = WaveformCompFactorArray(5,2);
-        end
-        
-% CodeTest 2
-%         WaveformComp = WaveformComp./max(WaveformComp);
-
-%         % previous code from Bo 20190622
+%         1/100       16
+% %         1           6
+% %         25/100       8
+% %         16/100       16
+% %         10/100       32
+% %         1           6
+% %         6/100       8
+% %         2/100       16
+% %         1/100       32
+% %         1           24
+% %         25/100       28
+% %         10/100     16
+% %         1/100    32
+% 
+%         ];
+%         % figure (11)
+%         WaveformCompFactor = WaveformCompFactorArray(1,2);
+%         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=WaveformCompFactorArray(2,1)
+%             WaveformCompFactor = WaveformCompFactorArray(2,2);
+%         end
+%         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=WaveformCompFactorArray(3,1)
+%             WaveformCompFactor = WaveformCompFactorArray(3,2);
+%         end
+%         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=WaveformCompFactorArray(4,1)
+%             WaveformCompFactor = WaveformCompFactorArray(4,2);
+%         end
+%         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)<=WaveformCompFactorArray(5,1)
+%             WaveformCompFactor = WaveformCompFactorArray(5,2);
+%         end
+%         
+% % CodeTest 2
+% %         WaveformComp = WaveformComp./max(WaveformComp);
+% 
+%         % previous code from Bo
 %         WAVEFORMDATAARRAYNorm  = WAVEFORMDATAARRAYNorm - WaveformComp/WaveformCompFactor;
 %         WAVEFORMDATAARRAYNorm(WAVEFORMDATAARRAYNorm<0)=0;
 %         WAVEFORMDATAARRAYNorm = WAVEFORMDATAARRAYNorm / max(WAVEFORMDATAARRAYNorm);
-        
-      % Test 20220524, AWG range 1-6 V. Does not work. Keep AWG_floor equal
-      % to 0.0.
-        AWG_floor = 0.0;
-        AWG_floor_array = AWG_floor.*WavefommIdealPulseOnOne;
-        WAVEFORMDATAARRAYNorm  = WAVEFORMDATAARRAYNorm.* (1 - WaveformComp/WaveformCompFactor);  
-        WAVEFORMDATAARRAYNorm(WAVEFORMDATAARRAYNorm<0)=0;
-        WAVEFORMDATAARRAYNorm = WAVEFORMDATAARRAYNorm / max(WAVEFORMDATAARRAYNorm);
-        WAVEFORMDATAARRAYNorm = AWG_floor_array + (1-AWG_floor).*WAVEFORMDATAARRAYNorm;
-        fprintf(['WAVEFORMDATAARRAYNorm max = ',num2str(round(max(WAVEFORMDATAARRAYNorm*1000))/1000),' \n  ']);
-        fprintf(['WAVEFORMDATAARRAYNorm min = ',num2str(round(min(WAVEFORMDATAARRAYNorm*1000))/1000),' \n  ']);
-        
-        
-        % WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm*2-1;                  % Generate the signal for AWG
-        % WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm;                  % Generate the signal for AWG
-        % WAVEFORMDATAARRAYNorm(WAVEFORMDATAARRAYNorm<0)=0;
-        % WAVEFORMDATAARRAYNorm = abs((WAVEFORMDATAARRAY-PulseOff)/max(WAVEFORMDATAARRAY-PulseOff)); % Normalized
-        
-        % xlim([100,106]);
-        % Share final DataArray
-        handles.LastWAVEFORMDATAARRAY     = WAVEFORMDATAARRAY;
-        FinalPatternInSampleFirst = PatternInSampleFirst;
-        FinalPatternInSampleLast  = PatternInSampleLast;
-        % First part, line 2 to 511
-        for k = 1:LineOfThePatternFirst
-            StartL = 1+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
-            EndL   = SamplesOfOneLineFirst+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
-            FinalPatternInSampleFirst(k,:)=WAVEFORMDATAARRAY(StartL:EndL);
-        end
-        % Second part, line 512 to 1
-        StartL = 1+SamplesOfOnePatternFirst;
-        EndL   = SamplesOfOneLineLast+SamplesOfOnePatternFirst;
-        FinalPatternInSampleLast(:)=WAVEFORMDATAARRAY(StartL:EndL);
-        handles.FinalPatternInSampleFirst = FinalPatternInSampleFirst;
-        handles.FinalPatternInSampleLast  = FinalPatternInSampleLast;
-
-        WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm*(PulseOn-PulseOff)+PulseOff;
-%         PulseOn = 1;                % Waveform value when pulse is on
-%         PulseOff = 0;               % Waveform value when pulse is off
-%         VLoops2 = linspace(0,NLoop,NLoop*1000);
-        fprintf(['Processing: ',num2str(round(toc(PostProcessTakesTime)*1000)),' ms.   ']);
-        
-               
-        % plotting envelops
-        FigureTakesTime = tic;
-        FigureIfShow = get(handles.text144, 'String');
-        if FigureIfShow == 'Full  '
-            if videoRecord == 0
-                
-                fh = figure (211);
-                fh.Units = 'normalized'; fh.Position = [0 0 1 1];          % maximize figure 11 when run 
-                subplot(2, 2, 1);
-                if kLoopnum == 1
-                    % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
-                    plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYImageArea(FigureShowStart:FigureShowEnd)*0.8,'-.r'); 
-                    hold on
-                    plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WaveformIdealPeak(FigureShowStart:FigureShowEnd)*0.8,'--k','linewidth',2); 
-                    hold on
-                end
-    %             if kLoopnum == 1 || mod(kLoopnum,20) == 0
-    %                 Colork = 1-round(kLoopnum/20)/round(NLoop/20);
-    %                 plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYNorm(FigureShowStart:FigureShowEnd),'color',[Colork Colork 1]);hold on
-    %             end 
-                Colork = 1-(kLoopnum)/NLoop;
-                plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYNorm(FigureShowStart:FigureShowEnd),'color',[Colork Colork 1]);hold on
-    %            plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYNorm(FigureShowStart:FigureShowEnd),'g');hold on
-                xlabel('Time/us');
-                ylabel('Intensity/A.U.');
-                title('Envelope of electronic waveforms');
-
-                subplot(2, 2, 3);
-                if kLoopnum == 1
-                    % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
-                    plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYImageArea(FigureShowStart:FigureShowEnd)*VIntAmpPeakArrayOneOneMean(kLoopnum),'-.r'); hold on
-                    plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WaveformIdealPeak(FigureShowStart:FigureShowEnd)*VIntAmpPeakArrayOneOneMean(kLoopnum),'--k','linewidth',2); hold on
-                end
-    %             if kLoopnum == 1 || mod(kLoopnum,20) == 0
-    %                 Colork = 1-round(kLoopnum/20)/round(NLoop/20);
-    %                 plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,VIntAmpPeakArray(FigureShowStart:FigureShowEnd),'color',[Colork Colork 1]);hold on
-    %             end 
-                Colork = 1-(kLoopnum)/NLoop;
-                plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,VIntAmpPeakArray(FigureShowStart:FigureShowEnd),'color',[Colork Colork 1]);hold on
-                plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,- WaveformComp(FigureShowStart:FigureShowEnd)*100,'color',[Colork 1 Colork]);hold on
-                xlabel('Time/us');
-                title('Envelope of output waveforms');
-
-                subplot(2, 4, 3);
-                plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneMaxFluc(1:kLoopnum)*100,'-sk');hold on;
-                if kLoopnum==1
-                    text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneMaxFluc(1)*100),'%']);
-                    xlabel('Loops');
-                    ylabel('Fluctuation of signal/%');
-                end
-                title(['Max, ',num2str(VIntAmpPeakArrayOnOneMaxFluc(kLoopnum)*100),'%, Compensation Factor = ',num2str(WaveformCompFactor)]);
-
-                subplot(2, 4, 4);
-                plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneRMSFluc(1:kLoopnum)*100,'-sb');hold on;
-                if kLoopnum==1
-                    text(0.5,max(VIntAmpPeakArrayOnOneRMSFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneRMSFluc(1)*100),'%']);
-                    xlabel('Loops');
-                    ylabel('Fluctuation of signal/%');
-                end
-                title(['RMS, ',num2str(VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)*100),'%, Compensation Factor = ',num2str(WaveformCompFactor)]);
-
-                subplot(2, 2, 4);
-                plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOneOneMean(1:kLoopnum),'-ok');hold on;
-                xlabel('Loops');
-                ylabel('Mean value of output pulse peaks/a.u.');
-                title('Loops vs output pulse peaks mean value');
-                fprintf(['Figure: ',num2str(round(toc(FigureTakesTime)*1000)),' ms.   ']);
-    %             fprintf([num2str(kLoopnum),'th rounds: ',num2str(round(toc(AWGTakesTime)*1000)),' ms.\n']);
-                pause(str2double(get(handles.edit31, 'String')));
-                
-                % keyboard interrupt feedback loop
-                isKeyPressed = ~isempty(get(fh,'CurrentCharacter'));
-                if isKeyPressed
-                    break
-                end
-                
-                
-            else  % if videoRecord ~= 0, i.e. if need to record a video
-                fh = figure (211);
-                fh.Units = 'normalized'; fh.Position = [0 0 1 1];          % maximize figure 11 when run 
-                subplot(2, 2, 1);
-                if kLoopnum == 1
-                    % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
-%                     plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYImageArea(FigureShowStart:FigureShowEnd)*0.8,'-.r'); 
-%                     hold on
-%                     plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WaveformIdealPeak(FigureShowStart:FigureShowEnd)*0.8,'--k','linewidth',2); 
-%                     hold on
-                end
-
-                Colork = 0;
-                plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,VIntModPeakArray(FigureShowStart:FigureShowEnd),'color',[Colork Colork 1],'linewidth',2);
-%                 plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYNorm(FigureShowStart:FigureShowEnd),'color',[Colork Colork 1],'linewidth',2);
+%         
+% %         WaveformComp = WaveformComp*startFactor;       % Test 20210519
+% %         WAVEFORMDATAARRAYNorm  = WAVEFORMDATAARRAYNorm.* (1 - WaveformComp/WaveformCompFactor);  
+% %         WAVEFORMDATAARRAYNorm = startFactor*WAVEFORMDATAARRAYNorm/max(WAVEFORMDATAARRAYNorm);
+% %         WAVEFORMDATAARRAYNorm(WAVEFORMDATAARRAYNorm<0)=0;
+% %         WAVEFORMDATAARRAYNorm(WAVEFORMDATAARRAYNorm>1)=1;
+%         
+%         
+%         % WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm*2-1;                  % Generate the signal for AWG
+%         % WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm;                  % Generate the signal for AWG
+%         % WAVEFORMDATAARRAYNorm(WAVEFORMDATAARRAYNorm<0)=0;
+%         % WAVEFORMDATAARRAYNorm = abs((WAVEFORMDATAARRAY-PulseOff)/max(WAVEFORMDATAARRAY-PulseOff)); % Normalized
+%         
+%         % xlim([100,106]);
+%         % Share final DataArray
+%         handles.LastWAVEFORMDATAARRAY     = WAVEFORMDATAARRAY;
+%         FinalPatternInSampleFirst = PatternInSampleFirst;
+%         FinalPatternInSampleLast  = PatternInSampleLast;
+%         % First part, line 2 to 511
+%         for k = 1:LineOfThePatternFirst
+%             StartL = 1+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
+%             EndL   = SamplesOfOneLineFirst+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
+%             FinalPatternInSampleFirst(k,:)=WAVEFORMDATAARRAY(StartL:EndL);
+%         end
+%         % Second part, line 512 to 1
+%         StartL = 1+SamplesOfOnePatternFirst;
+%         EndL   = SamplesOfOneLineLast+SamplesOfOnePatternFirst;
+%         FinalPatternInSampleLast(:)=WAVEFORMDATAARRAY(StartL:EndL);
+%         handles.FinalPatternInSampleFirst = FinalPatternInSampleFirst;
+%         handles.FinalPatternInSampleLast  = FinalPatternInSampleLast;
+% 
+%         WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm*(PulseOn-PulseOff)+PulseOff;
+% %         PulseOn = 1;                % Waveform value when pulse is on
+% %         PulseOff = 0;               % Waveform value when pulse is off
+% %         VLoops2 = linspace(0,NLoop,NLoop*1000);
+%         fprintf(['Processing: ',num2str(round(toc(PostProcessTakesTime)*1000)),' ms.   ']);
+%         % plotting envelops
+%         FigureIfShow = get(handles.text144, 'String');
+%         if FigureIfShow == 'Full  '
+%             FigureTakesTime = tic;
+%             fh = figure (11);
+%             fh.Units = 'normalized'; fh.Position = [0 0 1 1];          % maximize figure 11 when run 
+%             subplot(2, 2, 1);
+%             if kLoopnum == 1
+%                 % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
+%                 plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYImageArea(FigureShowStart:FigureShowEnd)*0.8,'-.r'); 
 %                 hold on
-                xlabel('Time/us');
-                ylabel('Intensity/A.U.');
-                xlim([20 45])
-                ylim([0 120])
-                title('Envelope of optical waveforms after I.M.');
-%                 title('Envelope of electronic waveforms');
-
-                subplot(2, 2, 3);
-%                 if kLoopnum == 1
-%                     % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
-%                     plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYImageArea(FigureShowStart:FigureShowEnd)*VIntAmpPeakArrayOneOneMean(kLoopnum),'-.r'); hold on
-%                     plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WaveformIdealPeak(FigureShowStart:FigureShowEnd)*VIntAmpPeakArrayOneOneMean(kLoopnum),'--k','linewidth',2); hold on
-%                 end
-
-%                 Colork = 1-(kLoopnum)/NLoop;
-                plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,VIntAmpPeakArray(FigureShowStart:FigureShowEnd),'color',[204/255 0 0],'linewidth',2);
+%                 plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WaveformIdealPeak(FigureShowStart:FigureShowEnd)*0.8,'--k','linewidth',2); 
 %                 hold on
-%                 plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,- WaveformComp(FigureShowStart:FigureShowEnd)*100,'color',[Colork 1 Colork]);hold on
-                xlabel('Time/us');
-                ylim([0 400])
-                xlim([20 45])
-                title('Envelope of output waveforms');
-
-                subplot(2, 4, 3);
-                plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneMaxFluc(1:kLoopnum)*100,'-sk');hold on;
-                if kLoopnum==1
-                    text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneMaxFluc(1)*100),'%']);
-                    xlabel('Loops');
-                    ylabel('Fluctuation of signal/%');
-                end
-                title(['Max, ',num2str(VIntAmpPeakArrayOnOneMaxFluc(kLoopnum)*100),'%, Compensation Factor = ',num2str(WaveformCompFactor)]);
-
-                subplot(2, 4, 4);
-                plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneRMSFluc(1:kLoopnum)*100,'-sb');hold on;
-                if kLoopnum==1
-                    text(0.5,max(VIntAmpPeakArrayOnOneRMSFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneRMSFluc(1)*100),'%']);
-                    xlabel('Loops');
-                    ylabel('Fluctuation of signal/%');
-                end
-                title(['RMS, ',num2str(VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)*100),'%, Compensation Factor = ',num2str(WaveformCompFactor)]);
-
-                subplot(2, 2, 4);
-                plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOneOneMean(1:kLoopnum),'-ok');hold on;
-                xlabel('Loops');
-                ylabel('Mean value of output pulse peaks/a.u.');
-                title('Loops vs output pulse peaks mean value');
-                fprintf(['Figure: ',num2str(round(toc(FigureTakesTime)*1000)),' ms.   ']);
-    %             fprintf([num2str(kLoopnum),'th rounds: ',num2str(round(toc(AWGTakesTime)*1000)),' ms.\n']);
-                pause(str2double(get(handles.edit31, 'String')));
-                
-                % keyboard interrupt feedback loop
-                isKeyPressed = ~isempty(get(fh,'CurrentCharacter'));
-                if isKeyPressed
-                    break
-                end
-                
-                % capture each frame to create a movie after the loop, in the
-                % end of this callback function
-                F(kLoopnum) = getframe(gcf) ;
-                drawnow
-            end % if videoRecord == 0
-            
-            
-        elseif FigureIfShow == 'Simple'
-            FigureTakesTime = tic;
-            fh = figure (211)
-            subplot(1, 2, 1);
-            plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneMaxFluc(1:kLoopnum)*100,'-sk');hold on;
-            if kLoopnum==1
-                text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneMaxFluc(1)*100),'%']);
-                xlabel('Loops');
-                ylabel('Fluctuation of signal/%');
-            end
-            title(['Max, ',num2str(VIntAmpPeakArrayOnOneMaxFluc(kLoopnum)*100),'%']);
-            subplot(1, 2, 2);
-            plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOneOneMean(1:kLoopnum),'-ok');hold on;
-            xlabel('Loops');
-            ylabel('Mean value of output pulse peaks/a.u.');
-            title('Loops vs output pulse peaks mean value');
-            fprintf(['Figure: ',num2str(round(toc(FigureTakesTime)*1000)),' ms.   ']);
-%             fprintf([num2str(kLoopnum),'th rounds: ',num2str(round(toc(AWGTakesTime)*1000)),' ms.\n']);
-            pause(str2double(get(handles.edit31, 'String')));
-            
-            % keyboard interrupt feedback loop
-            isKeyPressed = ~isempty(get(fh,'CurrentCharacter'));
-            if isKeyPressed
-                break
-            end
-                
-        end           
-        fprintf([num2str(kLoopnum),'th rounds: ',num2str(round(toc(AWGTakesTime)*1000)),' ms.\n']);
-        
-        % if RMS reduced to a desired value, break out of the feedback loop
-        % right away 20210301
-        if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) < 0.01 || VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) > 1
-            break
-        end
-        
-        
-        
-%     else          % used to match the end in line 2901
-    %     VItensityAmp = VItensityAmp/AverageTime;
-    %     VItensityMod = VItensityMod/AverageTime;
-    %     % Save data
-    %     if DataSaveSaveData == 'Yes'
-    %         save([get(handles.edit23, 'String'),'\',PresentFileName,'_Mod_signal_Loop_',num2str(kLoopnum)],'VItensityMod');
-    %         save([get(handles.edit23, 'String'),'\',PresentFileName,'_Amp_signal_Loop_',num2str(kLoopnum)],'VItensityAmp');
-    %     end
-    %     if FeedbackLoopRawData == 'Yes'
-    %         figure (12)
-    %         subplot(2,1,1);
-    %         plot(VTimeOSC/1e-6,VItensityMod);
-    %         % hold on;
-    %         xlabel('Time/us');
-    %         ylabel('Voltage/mV');
-    %         xlim([0,max(VTimeOSC/1e-6)-0.0001]);
-    %         subplot(2,1,2);
-    %         plot(VTimeOSC/1e-6,VItensityAmp);
-    %         % hold on;
-    %         xlabel('Time/us');
-    %         ylabel('Voltage/mV');
-    %         xlim([0,max(VTimeOSC/1e-6)-0.0001]);
-    %         % ylim([-0.05,1]);
-    %         title('Channel A, amplified signal');
-    %     end
-    %     
-    %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %     %%%%%%%%%%%%%%%%%%%% processing waveform %%%%%%%%%%%%%%%%%%%%%%%%%%
-    %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %     % Here assuming AWG sampling rate 4 MHz, laser rep rate 4 MHz, OSC sampling rate 500 MHz.
-    %     % AWG sampling rate is not accurately 4 MHz, so it is scaled here.
-    % 
-    %     % *(should be/measure)
-    %     % SamRatioOscToAWGScaled =(SamRatioOscToAWG)*(15.586/15.594)*(3.12313/3.12308)*(1.2493735/1.2493756)*(3.1234383/3.1234385)*(3.1234381/3.1234383);
-    %     SamRatioOscToAWGScaled = SamRatioOscToAWG;
-    %     % SamRatioOscToAWGScaled =(SamRatioOscToAWGScaled)*0.999484264671746*1.007640000000000e+02/1.007580000000000e+02;
-    %     % SamRatioOscToAWGScaled = SamRatioOscToAWGScaled*0.999979344326761*1.000000600804944;
-    %     % SamRatioOscToAWGScaled = SamRatioOscToAWGScaled/3.1233765*3.1233756*0.999998769858928*0.999999776823323;
-    %     % SamRatioOscToAWGScaled = SamRatioOscToAWGScaled/3.1233756*3.123375*0.999999838665790*1.000005575296082;
-    %     % SamRatioOscToAWGScaled = SamRatioOscToAWGScaled*0.999999169444091*1.000002746970673*0.999999619555013;
-    %     % SamRatioOscToAWGScaled = SamRatioOscToAWGScaled*0.999999808838426*0.999999871933274*1.000000832433816;
-    %     % 4 MHz
-    %     % SamRatioOscToAWGScaled
-    %     % =(SamRatioOscToAWG)/200.1*200/6000.75*6000.69/(1.249338/1.2493308); % for
-    %     % 4 MHz
-    % 
-    % 
-    %     % Set the size of the waveform (equal to AWG waveform after scaling)
-    %     WaveformOSCSize = round(WAVEFORMSIZE*SamRatioOscToAWGScaled);                
-    %     SamRatioOscToAWGScaledInt = floor(SamRatioOscToAWGScaled/2)*2+2;
-    % 
-    %     % Find when does the waveform start
-    %     ChannelAStartPoint = str2double(get(handles.edit29, 'String'))*1e-6;
-    %     WaveChannelAStartPoint = find(VTimeOSC>=ChannelAStartPoint & VTimeOSC<(ChannelAStartPoint)+0.01e-6); % Find when does the waveform start
-    % 
-    % 
-    % 
-    %     if WaveChannelAStartPoint(1)+WaveformOSCSize-1>OSCNlengthPerChannel
-    %         errordlg('OSC record length is less than the AWG waveform period','GUI Error');
-    %         return;
-    %     end
-    % 
-    % 
-    % 
-    % 
-    % 
-    % 
-    % 
-    %     % Channel B process
-    %     if kLoopnum==1
-    %         ChannelBStartPoint = str2double(get(handles.edit30, 'String'))*1e-6;
-    %         WaveChannelBStartPoint = find(VTimeOSC>ChannelBStartPoint & VTimeOSC<(ChannelBStartPoint)+0.01e-6); % Find when does the waveform start
-    % 
-    %         % Process the use measured waveform to measure the peaks, average amplitude of each pulse.
-    %         VIntModMatrix = zeros(SamRatioOscToAWGScaledInt,WAVEFORMSIZE);
-    % 
-    %         % Define first value
-    %         kArraytoMatrix =1;
-    %         PulseStart = round(SamRatioOscToAWGScaled*(kArraytoMatrix-1))+WaveChannelBStartPoint(1);
-    %         PulseEnd   = PulseStart + SamRatioOscToAWGScaledInt-1;
-    %         VIntModMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix)=VItensityMod(PulseStart:PulseEnd);
-    %         PulseCenter = round((PulseStart+PulseEnd)/2);
-    %         % Define rest values
-    %         LastOneNumber = 0;
-    %         LastPulseCenter=0;
-    %         for kArraytoMatrix = 2:WAVEFORMSIZE % WAVEFORMSIZE is the AWG length
-    %             if WaveformIdealPeak(kArraytoMatrix-1)==1 % When last pulse is on, i.e., value is 1, then update pulse center at first
-    %                 PulseCenterInt = round(PulseCenter); % Pulse center may not be int value, so round it 
-    %                 LastPulseStart = PulseCenterInt-SamRatioOscToAWGScaledInt/2; % When does last pulse start, pulse center is the center of last pulse
-    %                 LastPulseEnd   = PulseCenterInt+SamRatioOscToAWGScaledInt/2 -1; % When does last pulse end, pulse center is the center of last pulse
-    %                 [~,PulseCenter]=max(  VItensityMod(LastPulseStart:LastPulseEnd)  ); % Find the pulse center of the last pulse, update the value with pulse peak
-    %                 PulseCenter = PulseCenter + LastPulseStart-1;
-    %                 PulseStart = (PulseCenter+SamRatioOscToAWGScaledInt/2);   % When does present pulse start, pulse center is the center of last pulse
-    %                 PulseEnd   = (PulseCenter+SamRatioOscToAWGScaledInt*3/2) -1; % When does present pulse end, pulse center is the center of last pulse
-    %                 VIntModMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix) = VItensityMod(PulseStart:PulseEnd); % Define the new pulse
-    %     %             if LastOneNumber>0
-    %     %                 ThisOneNumber = kArraytoMatrix-1;
-    %     % %                 SamRatioOscToAWGScaled
-    %     % %                 SamRatioOscToAWGScaled2 = abs(PulseCenter-0)/(ThisOneNumber-0)
-    %     %             end
-    %                 LastPulseCenter = PulseCenter;
-    %                 LastOneNumber = kArraytoMatrix-1;
-    % 
-    %                 PulseCenter= PulseCenter+SamRatioOscToAWGScaled;       % update the pulse center, use the present pulse center as last pulse center for next pulse;
-    %             else % When pulse is off, i.e., value is 0, then no need to update pulse center
-    %                 PulseCenterInt = round(PulseCenter);    % Pulse center may not be int value, so round it 
-    %                 PulseStart = (PulseCenterInt+SamRatioOscToAWGScaledInt/2);   % When does present pulse start, pulse center is the center of last pulse
-    %                 PulseEnd   = (PulseCenterInt+SamRatioOscToAWGScaledInt*3/2) -1; % When does present pulse end, pulse center is the center of last pulse
-    %                 VIntModMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix) = VItensityMod(PulseStart:PulseEnd); % Define the new pulse
-    %                 PulseCenter= PulseCenter+SamRatioOscToAWGScaled;       % update the pulse center, use the present pulse center as last pulse center for next pulse;
-    %             end
-    %         end
-    %         VIntModPeakArray = max(VIntModMatrix);                          % Find the peak of each pulse
-    %         % Process Only One fluc
-    %         VIntModPeakArrayOnOne = VIntModPeakArray.*WavefommIdealPulseOnOne;           % Choose only area with pulse on
-    %         % VIntModPeakArrayOneOneMean(kLoopnum) = sum(VIntModPeakArrayOnOne)/NumPulseOnOne;   % Average value
-    %         VIntModPeakArrayOnOneNorm = VIntModPeakArrayOnOne/max(VIntModPeakArrayOnOne);     % Normalize, [0, 1]
-    %         VIntModPeakArrayOnOneNormMean = sum(VIntModPeakArrayOnOneNorm)/NumPulseOnOne;       % Mean value of pulse peak
-    %         VIntModPeakArrayOnOneFluc = abs(VIntModPeakArrayOnOneNorm-VIntModPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
-    %         VIntModPeakArrayOnOneFlucRatio = VIntModPeakArrayOnOneFluc/VIntModPeakArrayOnOneNormMean;   % Fluctuation ratio
-    %         % VIntModPeakArrayOnOneAveFluc(kLoopnum) = sum(VIntModPeakArrayOnOneFlucRatio)/NumPulseOnOne;            % average fluctuation
-    %         VIntModPeakArrayOnOneRMSFluc = sum(VIntModPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne;         % RMS fluctuation
-    %         VIntModPeakArrayOnOneMaxFluc = max(VIntModPeakArrayOnOneFlucRatio);
-    %     end
-    % 
-    % 
-    % 
-    %     % SamRatioOscToAWGScaled0 =(1000/4)/200.1*200/6000.75*6000.69;
-    % 
-    % 
-    % 
-    % 
-    %     % Process the use measured waveform to measure the peaks, average amplitude of each pulse.
-    %     VIntAmpMatrix = zeros(SamRatioOscToAWGScaledInt,WAVEFORMSIZE);
-    %     % maxofKpulse = linspace(0,0,WAVEFORMSIZE);
-    %     % Start of each pulse
-    % 
-    %     % WaveformIdealPeak, is AWG ideal peak
-    % 
-    %     % fprintf(['Test 1 takes',num2str(toc(FeedbackLoopTimeBeforeLoop)),' seconds.\n']);
-    % 
-    %     % WaveChannelAStartPoint = find(VTimeOSC>=ChannelAStartPoint & VTimeOSC<(ChannelAStartPoint)+0.01e-6); % Find when does the waveform start
-    % 
-    % 
-    %     % Define first value
-    %     kArraytoMatrix =1;
-    %     PulseStart = round(SamRatioOscToAWGScaled*(kArraytoMatrix-1))+WaveChannelAStartPoint(1);
-    %     PulseEnd   = PulseStart + SamRatioOscToAWGScaledInt-1;
-    %     VIntAmpMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix)=VItensityAmp(PulseStart:PulseEnd);
-    %     PulseCenter = round((PulseStart+PulseEnd)/2);
-    %     % Define rest values
-    %         if PulsePeakTest~=0
-    %             if kArraytoMatrix ==PulsePeakTest
-    %                 figure (13)
-    %                 plot(VTimeOSC/1e-6,VItensityAmp);hold on;
-    %                 NCheck = PulseStart:PulseEnd;
-    %                 plot(VTimeOSC(NCheck)/1e-6,VItensityAmp(NCheck),'o');hold on
-    %                 minVTime = min(VTimeOSC(NCheck)/1e-6)-0.1;
-    %                 maxVTime = max(VTimeOSC(NCheck)/1e-6)+0.1;
-    %                 xlim([minVTime,maxVTime])
-    %             end
-    %         end
-    % 
-    %     for kArraytoMatrix = 2:WAVEFORMSIZE % WAVEFORMSIZE is the AWG length
-    %         if WaveformIdealPeak(kArraytoMatrix-1)==0.99 % When last pulse is on, i.e., value is 1, then update pulse center at first
-    %             PulseCenterInt = round(PulseCenter); % Pulse center may not be int value, so round it 
-    %             LastPulseStart = PulseCenterInt-SamRatioOscToAWGScaledInt/2; % When does last pulse start, pulse center is the center of last pulse
-    %             LastPulseEnd   = PulseCenterInt+SamRatioOscToAWGScaledInt/2 -1; % When does last pulse end, pulse center is the center of last pulse
-    %             [~,PulseCenter]=max(  VItensityAmp(LastPulseStart:LastPulseEnd)  ); % Find the pulse center of the last pulse, update the value with pulse peak
-    %             PulseCenter = PulseCenter + LastPulseStart-1;
-    %             PulseStart = (PulseCenter+SamRatioOscToAWGScaledInt/2);   % When does present pulse start, pulse center is the center of last pulse
-    %             PulseEnd   = (PulseCenter+SamRatioOscToAWGScaledInt*3/2) -1; % When does present pulse end, pulse center is the center of last pulse
-    %             VIntAmpMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix) = VItensityAmp(PulseStart:PulseEnd); % Define the new pulse
-    %             PulseCenter= PulseCenter+SamRatioOscToAWGScaled;       % update the pulse center, use the present pulse center as last pulse center for next pulse;
-    %         else % When pulse is off, i.e., value is 0, then no need to update pulse center
-    %             PulseCenterInt = round(PulseCenter);    % Pulse center may not be int value, so round it 
-    %             PulseStart = (PulseCenterInt+SamRatioOscToAWGScaledInt/2);   % When does present pulse start, pulse center is the center of last pulse
-    %             PulseEnd   = (PulseCenterInt+SamRatioOscToAWGScaledInt*3/2) -1; % When does present pulse end, pulse center is the center of last pulse
-    %             VIntAmpMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix) = VItensityAmp(PulseStart:PulseEnd); % Define the new pulse
-    %             PulseCenter= PulseCenter+SamRatioOscToAWGScaled;       % update the pulse center, use the present pulse center as last pulse center for next pulse;
-    %         end
-    %     % Use this to test measuring of pulse peak
-    %     % max = 1000000;
-    %         if PulsePeakTest~=0
-    %             if kArraytoMatrix == PulsePeakTest
-    %                 figure (13)
-    %                 plot(VTimeOSC/1e-6,VItensityAmp);hold on;
-    %                 NCheck = PulseStart:PulseEnd;
-    % 
-    %                 plot(VTimeOSC(NCheck)/1e-6,VItensityAmp(NCheck),'o');hold on
-    %                 minVTime = min(VTimeOSC(NCheck)/1e-6)-0.1;
-    %                 maxVTime = max(VTimeOSC(NCheck)/1e-6)+0.1;
-    %                 xlim([minVTime,maxVTime])
-    %             end
-    %         end
-    % 
-    % 
-    %     end
-    %     % fprintf(['Test 1 takes',num2str(toc(FeedbackLoopTimeBeforeLoop)),' seconds.\n']);
-    %     % plot(VTimeAWG/1e-6,maxofKpulse);hold on
-    % 
-    %     % xlabel('Time/us');
-    % 
-    % 
-    %     % whos VIntAmpMatrix
-    % 
-    %     % whos VIntAmpMatrix
-    % 
-    %     VIntAmpPeakArray = max(VIntAmpMatrix);                          % Find the peak of each pulse
-    %     % whos VIntAmpPeakArray
-    %     % whos VIntAmpPeakArray
-    % 
-    %     % Process pulses that are One!!!
-    %     VIntAmpPeakArrayOnOne = VIntAmpPeakArray.*WavefommIdealPulseOnOne;           % Choose only area with pulse on
-    %     VIntAmpPeakArrayOneOneMean(kLoopnum) = sum(VIntAmpPeakArrayOnOne)/NumPulseOnOne;   % Average value
-    %     VIntAmpPeakArrayOnOneNorm = VIntAmpPeakArrayOnOne/max(VIntAmpPeakArrayOnOne);     % Normalize, [0, 1]
-    %     VIntAmpPeakArrayOnOneNormMean = sum(VIntAmpPeakArrayOnOneNorm)/NumPulseOnOne;       % Mean value of pulse peak
-    %     VIntAmpPeakArrayOnOneFluc = abs(VIntAmpPeakArrayOnOneNorm-VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
-    %     VIntAmpPeakArrayOnOneFlucRatio = VIntAmpPeakArrayOnOneFluc/VIntAmpPeakArrayOnOneNormMean;   % Fluctuation ratio
-    %     VIntAmpPeakArrayOnOneAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio)/NumPulseOnOne;            % average fluctuation
-    %     VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne;         % RMS fluctuation
-    %     VIntAmpPeakArrayOnOneMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnOneFlucRatio);
-    % 
-    %     % Process pulses that are not off
-    %     VIntAmpPeakArrayOn = VIntAmpPeakArray.*WavefommIdealPulseOn;           % Choose only area with pulse on
-    %     VIntAmpPeakArrayMeanOn(kLoopnum) = sum(VIntAmpPeakArrayOn)/NumPulseOn;   % Average value
-    %     VIntAmpPeakArrayOnNorm = VIntAmpPeakArrayOn/max(VIntAmpPeakArrayOn);     % Normalize, [0, 1]
-    %     VIntAmpPeakArrayOnNormMean = sum(VIntAmpPeakArrayOnNorm)/NumPulseOn;       % Mean value of pulse peak
-    %     VIntAmpPeakArrayOnFluc = abs(VIntAmpPeakArrayOnNorm-VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak); % Deviation from ideal peak
-    % 
-    %     VIntAmpPeakArrayOnFlucRatio = VIntAmpPeakArrayOnFluc/VIntAmpPeakArrayOnNormMean;   % Fluctuation ratio
-    %     VIntAmpPeakArrayOnAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio)/NumPulseOn;            % average fluctuation
-    %     VIntAmpPeakArrayOnRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio.^2)/NumPulseOn;         % RMS fluctuation
-    %     VIntAmpPeakArrayOnMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnFlucRatio);
-    % 
-    %     % figure
-    %     % plot(VTimeAWG,VIntAmpPeakArrayOnNorm,'b');hold on
-    %     % plot(VTimeAWG,VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak,'k');hold on
-    %     % plot(VTimeAWG,VIntAmpPeakArrayOnFluc,'r');hold on
-    %     % plot(VTimeAWG,WaveformIdealPeak,'--g');hold on
-    %     % plot(VTimeAWG,VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne,'k');hold on
-    %     % plot(VTimeAWG,VIntAmpPeakArrayOnOneFluc,'r');hold on
-    %     % plot(VTimeAWG,VIntAmpPeakArrayOn,'--k');hold on
-    %     % plot(VTimeAWG,VIntAmpPeakArrayOnOneNorm,'--g');hold on
-    % 
-    %     % figure
-    %     % plot(VTimeOSC/1e-6-ChannelAStartPoint/1e-6,VItensityAmp);hold on;
-    %     % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm*20,'k');hold on
-    % 
-    %     % hold on;
-    %     % xlabel('Time/us');
-    %     % ylabel('Voltage/mV');
-    %     % 
-    %     % fprintf(['Test 2 takes',num2str(toc(FeedbackLoopTimeBeforeLoop)),' seconds.\n']);
-    %     % % 
-    %     % figure (13)
-    %     % plot(VTimeAWG/1e-6,VTimeAWG.*0+VIntAmpPeakArrayOnNormMean,'--r');hold on
-    %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnNorm,'-.k');hold on
-    %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnFluc,'-b');hold on
-    %     % xlim([0,40]);
-    %     figure (11)
-    %     % set(gcf, 'units','normalized','outerposition',[0 0.1 0.5 0.9]);
-    %     % Force it to display RIGHT NOW (otherwise it might not display until it's all done, unless you've stopped at a breakpoint.)
-    %     % caption = sprintf('Original "coins" image showing\n6 nickels (the larger coins) and 4 dimes (the smaller coins).');
-    %     % title(caption, 'FontSize', 14);
-    %     % axis image; % Make sure image is not artificially stretched because of screen's
-    %     % 
-    %     % % figure (10)
-    %     subplot(2, 3, 4);
-    %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnNorm);hold on
-    %     if kLoopnum == NLoop
-    %         % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
-    %         plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*VIntAmpPeakArrayOneOneMean(kLoopnum),'-.r'); hold on
-    %         plot(VTimeAWG/1e-6,WaveformIdealPeak*VIntAmpPeakArrayOneOneMean(kLoopnum),'--k','linewidth',2); hold on
-    %     end
-    %     plot(VTimeAWG/1e-6,VIntAmpPeakArrayOn,'b');
-    %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOn,'--k');hold on
-    %     % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm*40,'-.r');hold on
-    %     xlabel('Time/us');
-    %     % ylabel('Intensity/A.U.');
-    %     title('Envelope of output waveforms');
-    %     % legend('1st loop','2nd','3rd','4th','...');
-    %     % xlim([960,1010]);
-    %     % xlim([10,50]);
-    %     % % Save data
-    % 
-    % 
-    % 
-    %     % xlim([7570,7630]);
-    %     % figure (10)
-    % 
-    %     % subplot(4, 3, 4);
-    %     % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm);
-    %     % xlabel('Time/us');
-    %     % ylabel('AWG waveform');
-    %     % ylim([-0.05,1.05]);
-    %     % % title('Envelope of electronic waveforms');
-    %     % 
-    %     % subplot(4, 3, 1);
-    %     % plot(VTimeAWG/1e-6,VIntModPeakArray);
-    %     % 
-    %     % % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOn,'--k');hold on
-    %     % % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm*40,'-.r');hold on
-    %     % xlabel('Time/us');
-    %     % ylabel('Initial modulated light');
-    %     % ylabel('Intensity/A.U.');
-    %     % title('Envelope of initial modulated waveforms');
-    % 
-    %     % xlim([960,1010]);
-    %     % xlim([10,50]);
-    %     % legend('1st loop','2nd','3rd','4th','...');
-    %     
-    %     
-    %     if kLoopnum == NLoop
-    %         % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
-    %         plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*0.8,'-.r'); hold on
-    %         plot(VTimeAWG/1e-6,WaveformIdealPeak*0.8,'--k','linewidth',2); hold on
-    %     end
-    %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm,'b');
-    %     xlabel('Time/us');
-    %     ylabel('Intensity/A.U.');
-    %     title('Envelope of electronic waveforms');
-    %     xlim([0,300]);
-    %     xlim([100,106]);
-    %     % xlim([7570,7630]);
-    % 
-    %     subplot(2, 3, 1);
-    %     if kLoopnum == NLoop
-    %     % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
-    %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*0.8,'-.r'); hold on
-    %     plot(VTimeAWG/1e-6,WaveformIdealPeak*0.8,'--k','linewidth',2); hold on
-    %     end
-    %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm,'b');
-    %     xlabel('Time/us');
-    %     ylabel('Intensity/A.U.');
-    %     title('Envelope of electronic waveforms');
-    % 
-    % 
-    % 
-    %     % Save data
-    %     if DataSaveSaveData == 'Yes'
-    %         save([get(handles.edit23, 'String'),'\',PresentFileName,'_AWG_pattern_Loop_',num2str(kLoopnum)],'WAVEFORMDATAARRAYNorm');
-    %     end
-    % 
-    % 
-    %     % % Process pulses that are One!!!
-    %     % VIntAmpPeakArrayOnOne = VIntAmpPeakArray.*WavefommIdealPulseOnOne;           % Choose only area with pulse on
-    %     % % VIntAmpPeakArrayOneOneMean(kLoopnum) = sum(VIntAmpPeakArrayOnOne)/NumPulseOnOne;   % Average value
-    %     % VIntAmpPeakArrayOnOneNorm = VIntAmpPeakArrayOnOne/max(VIntAmpPeakArrayOnOne);     % Normalize, [0, 1]
-    %     % VIntAmpPeakArrayOnOneNormMean = sum(VIntAmpPeakArrayOnOneNorm)/NumPulseOnOne;       % Mean value of pulse peak
-    %     % VIntAmpPeakArrayOnOneFluc = abs(VIntAmpPeakArrayOnOneNorm-VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
-    %     % VIntAmpPeakArrayOnOneFlucRatio = VIntAmpPeakArrayOnOneFluc/VIntAmpPeakArrayOnOneNormMean;   % Fluctuation ratio
-    %     % VIntAmpPeakArrayOnOneAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio)/NumPulseOnOne;            % average fluctuation
-    %     % VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne;         % RMS fluctuation
-    %     % VIntAmpPeakArrayOnOneMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnOneFlucRatio);
-    %     % 
-    %     % % Process pulses that are not off
-    %     % VIntAmpPeakArrayOn = VIntAmpPeakArray.*WavefommIdealPulseOn;           % Choose only area with pulse on
-    %     % VIntAmpPeakArrayMeanOn(kLoopnum) = sum(VIntAmpPeakArrayOn)/NumPulseOn;   % Average value
-    %     % VIntAmpPeakArrayOnNorm = VIntAmpPeakArrayOn/max(VIntAmpPeakArrayOn);     % Normalize, [0, 1]
-    %     % VIntAmpPeakArrayOnNormMean = sum(VIntAmpPeakArrayOnNorm)/NumPulseOn;       % Mean value of pulse peak
-    %     % VIntAmpPeakArrayOnFluc = abs(VIntAmpPeakArrayOnNorm-VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak); % Deviation from ideal peak
-    %     % 
-    %     % VIntAmpPeakArrayOnFlucRatio = VIntAmpPeakArrayOnFluc/VIntAmpPeakArrayOnNormMean;   % Fluctuation ratio
-    %     % VIntAmpPeakArrayOnAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio)/NumPulseOn;            % average fluctuation
-    %     % VIntAmpPeakArrayOnRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio.^2)/NumPulseOn;         % RMS fluctuation
-    %     % VIntAmpPeakArrayOnMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnFlucRatio);
-    % 
-    % 
-    %     % % use measured waveform to generate a new waveform for AWG input: WAVEFORMDATAARRAY.
-    %     WaveformComp = VIntAmpPeakArrayOnOneNorm - VIntAmpPeakArrayOnOneNormMean.*WaveformIdealPeak;
-    %     WaveformComp = WaveformComp.*WavefommIdealPulseOnOne;
-    % 
-    % 
-    %     % use measured waveform to generate a new waveform for AWG input: WAVEFORMDATAARRAY.
-    %     % WaveformComp = VIntAmpPeakArrayOnNorm - VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak;
-    %     % WaveformComp = WaveformComp.*WavefommIdealPulseOn;
-    % 
-    %     % figure
-    %     % plot(VTimeAWG,VIntAmpPeakArrayOnNorm,'b');hold on
-    %     % plot(VTimeAWG,VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak,'k');hold on
-    %     % plot(VTimeAWG,WaveformComp,'r');hold on
-    %     % 
-    %     % figure (11)
-    %     WaveformCompFactor = 4;
-    %     if VIntAmpPeakArrayOnRMSFluc(kLoopnum)<=0.5/100
-    %         WaveformCompFactor = 8;
-    %     end
-    %     if VIntAmpPeakArrayOnRMSFluc(kLoopnum)<=0.05/100
-    %         WaveformCompFactor = 16;
-    %     end
-    %     if VIntAmpPeakArrayOnRMSFluc(kLoopnum)<=0.01/100
-    %         WaveformCompFactor = 32;
-    %     end
-    %     WaveformCompFactor = 6;
-    % 
-    %     WAVEFORMDATAARRAYNorm = WAVEFORMDATAARRAYNorm - WaveformComp/WaveformCompFactor;
-    % 
-    %     if min(WAVEFORMDATAARRAYNorm)<0
-    %         WAVEFORMDATAARRAYNorm = (WAVEFORMDATAARRAYNorm-min(WAVEFORMDATAARRAYNorm)) / max((WAVEFORMDATAARRAYNorm-min(WAVEFORMDATAARRAYNorm)));
-    %     else
-    %         WAVEFORMDATAARRAYNorm = WAVEFORMDATAARRAYNorm / max(WAVEFORMDATAARRAYNorm);
-    % 
-    %     end
-    %     % WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm*2-1;                  % Generate the signal for AWG
-    %     % WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm;                  % Generate the signal for AWG
-    %     % WAVEFORMDATAARRAYNorm(WAVEFORMDATAARRAYNorm<0)=0;
-    %     % WAVEFORMDATAARRAYNorm = abs((WAVEFORMDATAARRAY-PulseOff)/max(WAVEFORMDATAARRAY-PulseOff)); % Normalized
-    %     % 
-    %     subplot(2, 3, 5);
-    %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnNorm);hold on
-    % 
-    %     if kLoopnum == NLoop
-    %     % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
-    %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*VIntAmpPeakArrayOneOneMean(kLoopnum),'-.r'); hold on
-    %     plot(VTimeAWG/1e-6,WaveformIdealPeak*VIntAmpPeakArrayOneOneMean(kLoopnum),'--k','linewidth',2); hold on
-    %     end
-    % 
-    %     plot(VTimeAWG/1e-6,VIntAmpPeakArray,'b');hold on
-    %     plot(VTimeAWG/1e-6,- WaveformComp*100,'g');hold on
-    %     % xlim([100,106]);
-    %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOn,'--k');hold on
-    %     % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm*40,'-.r');hold on
-    %     xlabel('Time/us');
-    %     % ylabel('Intensity/A.U.');
-    %     title('Envelope of output waveforms');
-    %     % xlim([0,300]);
-    % 
-    % 
-    %     xlim([100,106]);
-    %     % Share final DataArray
-    %     handles.LastWAVEFORMDATAARRAY     = WAVEFORMDATAARRAY;
-    % 
-    %     FinalPatternInSampleFirst = PatternInSampleFirst;
-    %     FinalPatternInSampleLast  = PatternInSampleLast;
-    %     % First part, line 2 to 511
-    %     for k = 1:LineOfThePatternFirst
-    %         StartL = 1+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
-    %         EndL   = SamplesOfOneLineFirst+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
-    %         FinalPatternInSampleFirst(k,:)=WAVEFORMDATAARRAY(StartL:EndL);
-    %     end
-    %     % Second part, line 512 to 1
-    %     StartL = 1+SamplesOfOnePatternFirst;
-    %     EndL   = SamplesOfOneLineLast+SamplesOfOnePatternFirst;
-    %     FinalPatternInSampleLast(:)=WAVEFORMDATAARRAY(StartL:EndL);
-    %     handles.FinalPatternInSampleFirst = FinalPatternInSampleFirst;
-    %     handles.FinalPatternInSampleLast  = FinalPatternInSampleLast;
-    % 
-    %     WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm*(PulseOn-PulseOff)+PulseOff;
-    % 
-    % 
-    %     % whos WAVEFORMDATAARRAY;
-    %     % MAXW = max(WAVEFORMDATAARRAYNorm)
-    %     % MINW = min(WAVEFORMDATAARRAYNorm)
-    % 
-    % 
-    % 
-    % 
-    %     PulseOn = 1;                % Waveform value when pulse is on
-    %     PulseOff = 0;               % Waveform value when pulse is off
-    %     VLoops2 = linspace(0,NLoop,NLoop*1000);
-    %     subplot(2, 6, 5);
-    %     plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneMaxFluc(1:kLoopnum)*100,'-sk');hold on;
-    %     if kLoopnum==1
-    %         plot(VLoops2,VLoops2.*0+VIntModPeakArrayOnOneMaxFluc*100,'-.k');hold on;
-    %         text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneMaxFluc(1)*100),'%']);
-    %         text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*7*100,['Initial Mod = ',num2str(VIntModPeakArrayOnOneMaxFluc*100),'%']);
-    %         xlabel('Loops');
-    %         ylabel('Fluctuation of signal/%');
-    %     %     title('Max Fluctuation');
-    %     end
-    %     if kLoopnum==NLoop
-    %         legend('Amp Max','Mod Max');
-    %     end
-    %     % text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*6*100,['Present Amp = ',num2str(VIntAmpPeakArrayOnOneMaxFluc(kLoopnum)*100),'%']);
-    %     title(['Max, ',num2str(VIntAmpPeakArrayOnOneMaxFluc(kLoopnum)*100),'%']);
-    % 
-    %     subplot(2, 6, 6);
-    %     plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneRMSFluc(1:kLoopnum)*100,'-sb');hold on;
-    % 
-    %     if kLoopnum==1
-    %         plot(VLoops2,0.*VLoops2+VIntModPeakArrayOnOneRMSFluc*100,'-.b');hold on;
-    %         text(0.5,max(VIntAmpPeakArrayOnOneRMSFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneRMSFluc(1)*100),'%']);
-    %         text(0.5,max(VIntAmpPeakArrayOnOneRMSFluc(1))/10*7*100,['Initial Mod = ',num2str(VIntModPeakArrayOnOneRMSFluc*100),'%']);
-    %         xlabel('Loops');
-    %         ylabel('Fluctuation of signal/%');
-    % 
-    %     end
-    %     if kLoopnum==NLoop
-    %         legend('Amp RMS','Mod RMS');
-    %     end
-    %     % text(0.5,max(VIntAmpPeakArrayOnOneRMSFluc(1))/10*6*100,['Present Amp = ',num2str(VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)*100),'%']);
-    %     title(['RMS, ',num2str(VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)*100),'%']);
-    % 
-    % 
-    %     subplot(2, 3, 6);
-    %     plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOneOneMean(1:kLoopnum),'-ok');hold on;
-    %     xlabel('Loops');
-    %     ylabel('Mean value of output pulse peaks/a.u.');
-    %     title('Loops vs output pulse peaks mean value');
-    % 
-    % 
-    %     fprintf([num2str(kLoopnum),'th rounds, ']);
-    %     pause(str2double(get(handles.edit31, 'String')));
-
-%     end                   % used to match the if in line 2008 
-
-
-end
-
-% Save data
-if DataSaveSaveData == 'Yes'
-save([get(handles.edit23, 'String'),'\',PresentFileName,'_OSC_Time'],'VTimeOSC');
-save([get(handles.edit23, 'String'),'\',PresentFileName,'_AWG_Time'],'VTimeAWG');
-set(handles.text38, 'String',get(handles.text37, 'String'));
-set(handles.text37, 'String',get(handles.text36, 'String'));
-set(handles.text36, 'String',PresentFileName);
-end
-
-fprintf(['Feedback loop takes',num2str(toc(FeedbackLoopTime)),' seconds.\n']);
-% figure (13)
-
-
-% export AWG waveform that results in equalized optical output
-csvwrite('patternAfterFdbk.csv', WAVEFORMDATAARRAY);
-
-if videoRecord == 1
-    % a movie capturing each loop
-    % create the video writer with 2 fps
-    writerObj = VideoWriter('myVideo.avi');
-    writerObj.FrameRate = 2;
-
-    % open the video writer
-    open(writerObj);
-    % write the frames to the video
-    for i=1:length(F)
-        % convert the image to a frame
-        frame = F(i) ;    
-        writeVideo(writerObj, frame);
-    end
-    % close the writer object
-    close(writerObj);
-end
-
+%             end
+% %             if kLoopnum == 1 || mod(kLoopnum,20) == 0
+% %                 Colork = 1-round(kLoopnum/20)/round(NLoop/20);
+% %                 plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYNorm(FigureShowStart:FigureShowEnd),'color',[Colork Colork 1]);hold on
+% %             end 
+%             Colork = 1-(kLoopnum)/NLoop;
+%             plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYNorm(FigureShowStart:FigureShowEnd),'color',[Colork Colork 1]);hold on
+% %            plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYNorm(FigureShowStart:FigureShowEnd),'g');hold on
+%             xlabel('Time/us');
+%             ylabel('Intensity/A.U.');
+%             title('Envelope of electronic waveforms');
+% 
+%             subplot(2, 2, 3);
+%             if kLoopnum == 1
+%                 % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
+%                 plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WAVEFORMDATAARRAYImageArea(FigureShowStart:FigureShowEnd)*VIntAmpPeakArrayOneOneMean(kLoopnum),'-.r'); hold on
+%                 plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,WaveformIdealPeak(FigureShowStart:FigureShowEnd)*VIntAmpPeakArrayOneOneMean(kLoopnum),'--k','linewidth',2); hold on
+%             end
+% %             if kLoopnum == 1 || mod(kLoopnum,20) == 0
+% %                 Colork = 1-round(kLoopnum/20)/round(NLoop/20);
+% %                 plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,VIntAmpPeakArray(FigureShowStart:FigureShowEnd),'color',[Colork Colork 1]);hold on
+% %             end 
+%             Colork = 1-(kLoopnum)/NLoop;
+%             plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,VIntAmpPeakArray(FigureShowStart:FigureShowEnd),'color',[Colork Colork 1]);hold on
+%             plot(VTimeAWG(FigureShowStart:FigureShowEnd)/1e-6,- WaveformComp(FigureShowStart:FigureShowEnd)*100,'color',[Colork 1 Colork]);hold on
+%             xlabel('Time/us');
+%             title('Envelope of output waveforms');
+% 
+%             subplot(2, 4, 3);
+%             plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneMaxFluc(1:kLoopnum)*100,'-sk');hold on;
+%             if kLoopnum==1
+%                 text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneMaxFluc(1)*100),'%']);
+%                 xlabel('Loops');
+%                 ylabel('Fluctuation of signal/%');
+%             end
+%             title(['Max, ',num2str(VIntAmpPeakArrayOnOneMaxFluc(kLoopnum)*100),'%, Compensation Factor = ',num2str(WaveformCompFactor)]);
+% 
+%             subplot(2, 4, 4);
+%             plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneRMSFluc(1:kLoopnum)*100,'-sb');hold on;
+%             if kLoopnum==1
+%                 text(0.5,max(VIntAmpPeakArrayOnOneRMSFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneRMSFluc(1)*100),'%']);
+%                 xlabel('Loops');
+%                 ylabel('Fluctuation of signal/%');
+%             end
+%             title(['RMS, ',num2str(VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)*100),'%, Compensation Factor = ',num2str(WaveformCompFactor)]);
+% 
+%             subplot(2, 2, 4);
+%             plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOneOneMean(1:kLoopnum),'-ok');hold on;
+%             xlabel('Loops');
+%             ylabel('Mean value of output pulse peaks/a.u.');
+%             title('Loops vs output pulse peaks mean value');
+%             fprintf(['Figure: ',num2str(round(toc(FigureTakesTime)*1000)),' ms.   ']);
+% %             fprintf([num2str(kLoopnum),'th rounds: ',num2str(round(toc(AWGTakesTime)*1000)),' ms.\n']);
+%             pause(str2double(get(handles.edit31, 'String')));
+%         elseif FigureIfShow == 'Simple'
+%             FigureTakesTime = tic;
+%             figure (11)
+%             subplot(1, 2, 1);
+%             plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneMaxFluc(1:kLoopnum)*100,'-sk');hold on;
+%             if kLoopnum==1
+%                 text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneMaxFluc(1)*100),'%']);
+%                 xlabel('Loops');
+%                 ylabel('Fluctuation of signal/%');
+%             end
+%             title(['Max, ',num2str(VIntAmpPeakArrayOnOneMaxFluc(kLoopnum)*100),'%']);
+%             subplot(1, 2, 2);
+%             plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOneOneMean(1:kLoopnum),'-ok');hold on;
+%             xlabel('Loops');
+%             ylabel('Mean value of output pulse peaks/a.u.');
+%             title('Loops vs output pulse peaks mean value');
+%             fprintf(['Figure: ',num2str(round(toc(FigureTakesTime)*1000)),' ms.   ']);
+% %             fprintf([num2str(kLoopnum),'th rounds: ',num2str(round(toc(AWGTakesTime)*1000)),' ms.\n']);
+%             pause(str2double(get(handles.edit31, 'String')));
+%         end           
+%         fprintf([num2str(kLoopnum),'th rounds: ',num2str(round(toc(AWGTakesTime)*1000)),' ms.\n']);
+%         
+%         % if RMS reduced to a desired value, break out of the feedback loop
+%         % right away 20210301
+%         if VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) < 0.01 || VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) > 1
+%             break
+%         end
+%         
+%         
+%     else
+%     %     VItensityAmp = VItensityAmp/AverageTime;
+%     %     VItensityMod = VItensityMod/AverageTime;
+%     %     % Save data
+%     %     if DataSaveSaveData == 'Yes'
+%     %         save([get(handles.edit23, 'String'),'\',PresentFileName,'_Mod_signal_Loop_',num2str(kLoopnum)],'VItensityMod');
+%     %         save([get(handles.edit23, 'String'),'\',PresentFileName,'_Amp_signal_Loop_',num2str(kLoopnum)],'VItensityAmp');
+%     %     end
+%     %     if FeedbackLoopRawData == 'Yes'
+%     %         figure (12)
+%     %         subplot(2,1,1);
+%     %         plot(VTimeOSC/1e-6,VItensityMod);
+%     %         % hold on;
+%     %         xlabel('Time/us');
+%     %         ylabel('Voltage/mV');
+%     %         xlim([0,max(VTimeOSC/1e-6)-0.0001]);
+%     %         subplot(2,1,2);
+%     %         plot(VTimeOSC/1e-6,VItensityAmp);
+%     %         % hold on;
+%     %         xlabel('Time/us');
+%     %         ylabel('Voltage/mV');
+%     %         xlim([0,max(VTimeOSC/1e-6)-0.0001]);
+%     %         % ylim([-0.05,1]);
+%     %         title('Channel A, amplified signal');
+%     %     end
+%     %     
+%     %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     %     %%%%%%%%%%%%%%%%%%%% processing waveform %%%%%%%%%%%%%%%%%%%%%%%%%%
+%     %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     %     % Here assuming AWG sampling rate 4 MHz, laser rep rate 4 MHz, OSC sampling rate 500 MHz.
+%     %     % AWG sampling rate is not accurately 4 MHz, so it is scaled here.
+%     % 
+%     %     % *(should be/measure)
+%     %     % SamRatioOscToAWGScaled =(SamRatioOscToAWG)*(15.586/15.594)*(3.12313/3.12308)*(1.2493735/1.2493756)*(3.1234383/3.1234385)*(3.1234381/3.1234383);
+%     %     SamRatioOscToAWGScaled = SamRatioOscToAWG;
+%     %     % SamRatioOscToAWGScaled =(SamRatioOscToAWGScaled)*0.999484264671746*1.007640000000000e+02/1.007580000000000e+02;
+%     %     % SamRatioOscToAWGScaled = SamRatioOscToAWGScaled*0.999979344326761*1.000000600804944;
+%     %     % SamRatioOscToAWGScaled = SamRatioOscToAWGScaled/3.1233765*3.1233756*0.999998769858928*0.999999776823323;
+%     %     % SamRatioOscToAWGScaled = SamRatioOscToAWGScaled/3.1233756*3.123375*0.999999838665790*1.000005575296082;
+%     %     % SamRatioOscToAWGScaled = SamRatioOscToAWGScaled*0.999999169444091*1.000002746970673*0.999999619555013;
+%     %     % SamRatioOscToAWGScaled = SamRatioOscToAWGScaled*0.999999808838426*0.999999871933274*1.000000832433816;
+%     %     % 4 MHz
+%     %     % SamRatioOscToAWGScaled
+%     %     % =(SamRatioOscToAWG)/200.1*200/6000.75*6000.69/(1.249338/1.2493308); % for
+%     %     % 4 MHz
+%     % 
+%     % 
+%     %     % Set the size of the waveform (equal to AWG waveform after scaling)
+%     %     WaveformOSCSize = round(WAVEFORMSIZE*SamRatioOscToAWGScaled);                
+%     %     SamRatioOscToAWGScaledInt = floor(SamRatioOscToAWGScaled/2)*2+2;
+%     % 
+%     %     % Find when does the waveform start
+%     %     ChannelAStartPoint = str2double(get(handles.edit29, 'String'))*1e-6;
+%     %     WaveChannelAStartPoint = find(VTimeOSC>=ChannelAStartPoint & VTimeOSC<(ChannelAStartPoint)+0.01e-6); % Find when does the waveform start
+%     % 
+%     % 
+%     % 
+%     %     if WaveChannelAStartPoint(1)+WaveformOSCSize-1>OSCNlengthPerChannel
+%     %         errordlg('OSC record length is less than the AWG waveform period','GUI Error');
+%     %         return;
+%     %     end
+%     % 
+%     % 
+%     % 
+%     % 
+%     % 
+%     % 
+%     % 
+%     %     % Channel B process
+%     %     if kLoopnum==1
+%     %         ChannelBStartPoint = str2double(get(handles.edit30, 'String'))*1e-6;
+%     %         WaveChannelBStartPoint = find(VTimeOSC>ChannelBStartPoint & VTimeOSC<(ChannelBStartPoint)+0.01e-6); % Find when does the waveform start
+%     % 
+%     %         % Process the use measured waveform to measure the peaks, average amplitude of each pulse.
+%     %         VIntModMatrix = zeros(SamRatioOscToAWGScaledInt,WAVEFORMSIZE);
+%     % 
+%     %         % Define first value
+%     %         kArraytoMatrix =1;
+%     %         PulseStart = round(SamRatioOscToAWGScaled*(kArraytoMatrix-1))+WaveChannelBStartPoint(1);
+%     %         PulseEnd   = PulseStart + SamRatioOscToAWGScaledInt-1;
+%     %         VIntModMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix)=VItensityMod(PulseStart:PulseEnd);
+%     %         PulseCenter = round((PulseStart+PulseEnd)/2);
+%     %         % Define rest values
+%     %         LastOneNumber = 0;
+%     %         LastPulseCenter=0;
+%     %         for kArraytoMatrix = 2:WAVEFORMSIZE % WAVEFORMSIZE is the AWG length
+%     %             if WaveformIdealPeak(kArraytoMatrix-1)==1 % When last pulse is on, i.e., value is 1, then update pulse center at first
+%     %                 PulseCenterInt = round(PulseCenter); % Pulse center may not be int value, so round it 
+%     %                 LastPulseStart = PulseCenterInt-SamRatioOscToAWGScaledInt/2; % When does last pulse start, pulse center is the center of last pulse
+%     %                 LastPulseEnd   = PulseCenterInt+SamRatioOscToAWGScaledInt/2 -1; % When does last pulse end, pulse center is the center of last pulse
+%     %                 [~,PulseCenter]=max(  VItensityMod(LastPulseStart:LastPulseEnd)  ); % Find the pulse center of the last pulse, update the value with pulse peak
+%     %                 PulseCenter = PulseCenter + LastPulseStart-1;
+%     %                 PulseStart = (PulseCenter+SamRatioOscToAWGScaledInt/2);   % When does present pulse start, pulse center is the center of last pulse
+%     %                 PulseEnd   = (PulseCenter+SamRatioOscToAWGScaledInt*3/2) -1; % When does present pulse end, pulse center is the center of last pulse
+%     %                 VIntModMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix) = VItensityMod(PulseStart:PulseEnd); % Define the new pulse
+%     %     %             if LastOneNumber>0
+%     %     %                 ThisOneNumber = kArraytoMatrix-1;
+%     %     % %                 SamRatioOscToAWGScaled
+%     %     % %                 SamRatioOscToAWGScaled2 = abs(PulseCenter-0)/(ThisOneNumber-0)
+%     %     %             end
+%     %                 LastPulseCenter = PulseCenter;
+%     %                 LastOneNumber = kArraytoMatrix-1;
+%     % 
+%     %                 PulseCenter= PulseCenter+SamRatioOscToAWGScaled;       % update the pulse center, use the present pulse center as last pulse center for next pulse;
+%     %             else % When pulse is off, i.e., value is 0, then no need to update pulse center
+%     %                 PulseCenterInt = round(PulseCenter);    % Pulse center may not be int value, so round it 
+%     %                 PulseStart = (PulseCenterInt+SamRatioOscToAWGScaledInt/2);   % When does present pulse start, pulse center is the center of last pulse
+%     %                 PulseEnd   = (PulseCenterInt+SamRatioOscToAWGScaledInt*3/2) -1; % When does present pulse end, pulse center is the center of last pulse
+%     %                 VIntModMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix) = VItensityMod(PulseStart:PulseEnd); % Define the new pulse
+%     %                 PulseCenter= PulseCenter+SamRatioOscToAWGScaled;       % update the pulse center, use the present pulse center as last pulse center for next pulse;
+%     %             end
+%     %         end
+%     %         VIntModPeakArray = max(VIntModMatrix);                          % Find the peak of each pulse
+%     %         % Process Only One fluc
+%     %         VIntModPeakArrayOnOne = VIntModPeakArray.*WavefommIdealPulseOnOne;           % Choose only area with pulse on
+%     %         % VIntModPeakArrayOneOneMean(kLoopnum) = sum(VIntModPeakArrayOnOne)/NumPulseOnOne;   % Average value
+%     %         VIntModPeakArrayOnOneNorm = VIntModPeakArrayOnOne/max(VIntModPeakArrayOnOne);     % Normalize, [0, 1]
+%     %         VIntModPeakArrayOnOneNormMean = sum(VIntModPeakArrayOnOneNorm)/NumPulseOnOne;       % Mean value of pulse peak
+%     %         VIntModPeakArrayOnOneFluc = abs(VIntModPeakArrayOnOneNorm-VIntModPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
+%     %         VIntModPeakArrayOnOneFlucRatio = VIntModPeakArrayOnOneFluc/VIntModPeakArrayOnOneNormMean;   % Fluctuation ratio
+%     %         % VIntModPeakArrayOnOneAveFluc(kLoopnum) = sum(VIntModPeakArrayOnOneFlucRatio)/NumPulseOnOne;            % average fluctuation
+%     %         VIntModPeakArrayOnOneRMSFluc = sum(VIntModPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne;         % RMS fluctuation
+%     %         VIntModPeakArrayOnOneMaxFluc = max(VIntModPeakArrayOnOneFlucRatio);
+%     %     end
+%     % 
+%     % 
+%     % 
+%     %     % SamRatioOscToAWGScaled0 =(1000/4)/200.1*200/6000.75*6000.69;
+%     % 
+%     % 
+%     % 
+%     % 
+%     %     % Process the use measured waveform to measure the peaks, average amplitude of each pulse.
+%     %     VIntAmpMatrix = zeros(SamRatioOscToAWGScaledInt,WAVEFORMSIZE);
+%     %     % maxofKpulse = linspace(0,0,WAVEFORMSIZE);
+%     %     % Start of each pulse
+%     % 
+%     %     % WaveformIdealPeak, is AWG ideal peak
+%     % 
+%     %     % fprintf(['Test 1 takes',num2str(toc(FeedbackLoopTimeBeforeLoop)),' seconds.\n']);
+%     % 
+%     %     % WaveChannelAStartPoint = find(VTimeOSC>=ChannelAStartPoint & VTimeOSC<(ChannelAStartPoint)+0.01e-6); % Find when does the waveform start
+%     % 
+%     % 
+%     %     % Define first value
+%     %     kArraytoMatrix =1;
+%     %     PulseStart = round(SamRatioOscToAWGScaled*(kArraytoMatrix-1))+WaveChannelAStartPoint(1);
+%     %     PulseEnd   = PulseStart + SamRatioOscToAWGScaledInt-1;
+%     %     VIntAmpMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix)=VItensityAmp(PulseStart:PulseEnd);
+%     %     PulseCenter = round((PulseStart+PulseEnd)/2);
+%     %     % Define rest values
+%     %         if PulsePeakTest~=0
+%     %             if kArraytoMatrix ==PulsePeakTest
+%     %                 figure (13)
+%     %                 plot(VTimeOSC/1e-6,VItensityAmp);hold on;
+%     %                 NCheck = PulseStart:PulseEnd;
+%     %                 plot(VTimeOSC(NCheck)/1e-6,VItensityAmp(NCheck),'o');hold on
+%     %                 minVTime = min(VTimeOSC(NCheck)/1e-6)-0.1;
+%     %                 maxVTime = max(VTimeOSC(NCheck)/1e-6)+0.1;
+%     %                 xlim([minVTime,maxVTime])
+%     %             end
+%     %         end
+%     % 
+%     %     for kArraytoMatrix = 2:WAVEFORMSIZE % WAVEFORMSIZE is the AWG length
+%     %         if WaveformIdealPeak(kArraytoMatrix-1)==0.99 % When last pulse is on, i.e., value is 1, then update pulse center at first
+%     %             PulseCenterInt = round(PulseCenter); % Pulse center may not be int value, so round it 
+%     %             LastPulseStart = PulseCenterInt-SamRatioOscToAWGScaledInt/2; % When does last pulse start, pulse center is the center of last pulse
+%     %             LastPulseEnd   = PulseCenterInt+SamRatioOscToAWGScaledInt/2 -1; % When does last pulse end, pulse center is the center of last pulse
+%     %             [~,PulseCenter]=max(  VItensityAmp(LastPulseStart:LastPulseEnd)  ); % Find the pulse center of the last pulse, update the value with pulse peak
+%     %             PulseCenter = PulseCenter + LastPulseStart-1;
+%     %             PulseStart = (PulseCenter+SamRatioOscToAWGScaledInt/2);   % When does present pulse start, pulse center is the center of last pulse
+%     %             PulseEnd   = (PulseCenter+SamRatioOscToAWGScaledInt*3/2) -1; % When does present pulse end, pulse center is the center of last pulse
+%     %             VIntAmpMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix) = VItensityAmp(PulseStart:PulseEnd); % Define the new pulse
+%     %             PulseCenter= PulseCenter+SamRatioOscToAWGScaled;       % update the pulse center, use the present pulse center as last pulse center for next pulse;
+%     %         else % When pulse is off, i.e., value is 0, then no need to update pulse center
+%     %             PulseCenterInt = round(PulseCenter);    % Pulse center may not be int value, so round it 
+%     %             PulseStart = (PulseCenterInt+SamRatioOscToAWGScaledInt/2);   % When does present pulse start, pulse center is the center of last pulse
+%     %             PulseEnd   = (PulseCenterInt+SamRatioOscToAWGScaledInt*3/2) -1; % When does present pulse end, pulse center is the center of last pulse
+%     %             VIntAmpMatrix(1:SamRatioOscToAWGScaledInt,kArraytoMatrix) = VItensityAmp(PulseStart:PulseEnd); % Define the new pulse
+%     %             PulseCenter= PulseCenter+SamRatioOscToAWGScaled;       % update the pulse center, use the present pulse center as last pulse center for next pulse;
+%     %         end
+%     %     % Use this to test measuring of pulse peak
+%     %     % max = 1000000;
+%     %         if PulsePeakTest~=0
+%     %             if kArraytoMatrix == PulsePeakTest
+%     %                 figure (13)
+%     %                 plot(VTimeOSC/1e-6,VItensityAmp);hold on;
+%     %                 NCheck = PulseStart:PulseEnd;
+%     % 
+%     %                 plot(VTimeOSC(NCheck)/1e-6,VItensityAmp(NCheck),'o');hold on
+%     %                 minVTime = min(VTimeOSC(NCheck)/1e-6)-0.1;
+%     %                 maxVTime = max(VTimeOSC(NCheck)/1e-6)+0.1;
+%     %                 xlim([minVTime,maxVTime])
+%     %             end
+%     %         end
+%     % 
+%     % 
+%     %     end
+%     %     % fprintf(['Test 1 takes',num2str(toc(FeedbackLoopTimeBeforeLoop)),' seconds.\n']);
+%     %     % plot(VTimeAWG/1e-6,maxofKpulse);hold on
+%     % 
+%     %     % xlabel('Time/us');
+%     % 
+%     % 
+%     %     % whos VIntAmpMatrix
+%     % 
+%     %     % whos VIntAmpMatrix
+%     % 
+%     %     VIntAmpPeakArray = max(VIntAmpMatrix);                          % Find the peak of each pulse
+%     %     % whos VIntAmpPeakArray
+%     %     % whos VIntAmpPeakArray
+%     % 
+%     %     % Process pulses that are One!!!
+%     %     VIntAmpPeakArrayOnOne = VIntAmpPeakArray.*WavefommIdealPulseOnOne;           % Choose only area with pulse on
+%     %     VIntAmpPeakArrayOneOneMean(kLoopnum) = sum(VIntAmpPeakArrayOnOne)/NumPulseOnOne;   % Average value
+%     %     VIntAmpPeakArrayOnOneNorm = VIntAmpPeakArrayOnOne/max(VIntAmpPeakArrayOnOne);     % Normalize, [0, 1]
+%     %     VIntAmpPeakArrayOnOneNormMean = sum(VIntAmpPeakArrayOnOneNorm)/NumPulseOnOne;       % Mean value of pulse peak
+%     %     VIntAmpPeakArrayOnOneFluc = abs(VIntAmpPeakArrayOnOneNorm-VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
+%     %     VIntAmpPeakArrayOnOneFlucRatio = VIntAmpPeakArrayOnOneFluc/VIntAmpPeakArrayOnOneNormMean;   % Fluctuation ratio
+%     %     VIntAmpPeakArrayOnOneAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio)/NumPulseOnOne;            % average fluctuation
+%     %     VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne;         % RMS fluctuation
+%     %     VIntAmpPeakArrayOnOneMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnOneFlucRatio);
+%     % 
+%     %     % Process pulses that are not off
+%     %     VIntAmpPeakArrayOn = VIntAmpPeakArray.*WavefommIdealPulseOn;           % Choose only area with pulse on
+%     %     VIntAmpPeakArrayMeanOn(kLoopnum) = sum(VIntAmpPeakArrayOn)/NumPulseOn;   % Average value
+%     %     VIntAmpPeakArrayOnNorm = VIntAmpPeakArrayOn/max(VIntAmpPeakArrayOn);     % Normalize, [0, 1]
+%     %     VIntAmpPeakArrayOnNormMean = sum(VIntAmpPeakArrayOnNorm)/NumPulseOn;       % Mean value of pulse peak
+%     %     VIntAmpPeakArrayOnFluc = abs(VIntAmpPeakArrayOnNorm-VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak); % Deviation from ideal peak
+%     % 
+%     %     VIntAmpPeakArrayOnFlucRatio = VIntAmpPeakArrayOnFluc/VIntAmpPeakArrayOnNormMean;   % Fluctuation ratio
+%     %     VIntAmpPeakArrayOnAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio)/NumPulseOn;            % average fluctuation
+%     %     VIntAmpPeakArrayOnRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio.^2)/NumPulseOn;         % RMS fluctuation
+%     %     VIntAmpPeakArrayOnMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnFlucRatio);
+%     % 
+%     %     % figure
+%     %     % plot(VTimeAWG,VIntAmpPeakArrayOnNorm,'b');hold on
+%     %     % plot(VTimeAWG,VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak,'k');hold on
+%     %     % plot(VTimeAWG,VIntAmpPeakArrayOnFluc,'r');hold on
+%     %     % plot(VTimeAWG,WaveformIdealPeak,'--g');hold on
+%     %     % plot(VTimeAWG,VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne,'k');hold on
+%     %     % plot(VTimeAWG,VIntAmpPeakArrayOnOneFluc,'r');hold on
+%     %     % plot(VTimeAWG,VIntAmpPeakArrayOn,'--k');hold on
+%     %     % plot(VTimeAWG,VIntAmpPeakArrayOnOneNorm,'--g');hold on
+%     % 
+%     %     % figure
+%     %     % plot(VTimeOSC/1e-6-ChannelAStartPoint/1e-6,VItensityAmp);hold on;
+%     %     % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm*20,'k');hold on
+%     % 
+%     %     % hold on;
+%     %     % xlabel('Time/us');
+%     %     % ylabel('Voltage/mV');
+%     %     % 
+%     %     % fprintf(['Test 2 takes',num2str(toc(FeedbackLoopTimeBeforeLoop)),' seconds.\n']);
+%     %     % % 
+%     %     % figure (13)
+%     %     % plot(VTimeAWG/1e-6,VTimeAWG.*0+VIntAmpPeakArrayOnNormMean,'--r');hold on
+%     %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnNorm,'-.k');hold on
+%     %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnFluc,'-b');hold on
+%     %     % xlim([0,40]);
+%     %     figure (11)
+%     %     % set(gcf, 'units','normalized','outerposition',[0 0.1 0.5 0.9]);
+%     %     % Force it to display RIGHT NOW (otherwise it might not display until it's all done, unless you've stopped at a breakpoint.)
+%     %     % caption = sprintf('Original "coins" image showing\n6 nickels (the larger coins) and 4 dimes (the smaller coins).');
+%     %     % title(caption, 'FontSize', 14);
+%     %     % axis image; % Make sure image is not artificially stretched because of screen's
+%     %     % 
+%     %     % % figure (10)
+%     %     subplot(2, 3, 4);
+%     %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnNorm);hold on
+%     %     if kLoopnum == NLoop
+%     %         % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
+%     %         plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*VIntAmpPeakArrayOneOneMean(kLoopnum),'-.r'); hold on
+%     %         plot(VTimeAWG/1e-6,WaveformIdealPeak*VIntAmpPeakArrayOneOneMean(kLoopnum),'--k','linewidth',2); hold on
+%     %     end
+%     %     plot(VTimeAWG/1e-6,VIntAmpPeakArrayOn,'b');
+%     %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOn,'--k');hold on
+%     %     % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm*40,'-.r');hold on
+%     %     xlabel('Time/us');
+%     %     % ylabel('Intensity/A.U.');
+%     %     title('Envelope of output waveforms');
+%     %     % legend('1st loop','2nd','3rd','4th','...');
+%     %     % xlim([960,1010]);
+%     %     % xlim([10,50]);
+%     %     % % Save data
+%     % 
+%     % 
+%     % 
+%     %     % xlim([7570,7630]);
+%     %     % figure (10)
+%     % 
+%     %     % subplot(4, 3, 4);
+%     %     % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm);
+%     %     % xlabel('Time/us');
+%     %     % ylabel('AWG waveform');
+%     %     % ylim([-0.05,1.05]);
+%     %     % % title('Envelope of electronic waveforms');
+%     %     % 
+%     %     % subplot(4, 3, 1);
+%     %     % plot(VTimeAWG/1e-6,VIntModPeakArray);
+%     %     % 
+%     %     % % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOn,'--k');hold on
+%     %     % % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm*40,'-.r');hold on
+%     %     % xlabel('Time/us');
+%     %     % ylabel('Initial modulated light');
+%     %     % ylabel('Intensity/A.U.');
+%     %     % title('Envelope of initial modulated waveforms');
+%     % 
+%     %     % xlim([960,1010]);
+%     %     % xlim([10,50]);
+%     %     % legend('1st loop','2nd','3rd','4th','...');
+%     %     
+%     %     
+%     %     if kLoopnum == NLoop
+%     %         % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
+%     %         plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*0.8,'-.r'); hold on
+%     %         plot(VTimeAWG/1e-6,WaveformIdealPeak*0.8,'--k','linewidth',2); hold on
+%     %     end
+%     %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm,'b');
+%     %     xlabel('Time/us');
+%     %     ylabel('Intensity/A.U.');
+%     %     title('Envelope of electronic waveforms');
+%     %     xlim([0,300]);
+%     %     xlim([100,106]);
+%     %     % xlim([7570,7630]);
+%     % 
+%     %     subplot(2, 3, 1);
+%     %     if kLoopnum == NLoop
+%     %     % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
+%     %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*0.8,'-.r'); hold on
+%     %     plot(VTimeAWG/1e-6,WaveformIdealPeak*0.8,'--k','linewidth',2); hold on
+%     %     end
+%     %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm,'b');
+%     %     xlabel('Time/us');
+%     %     ylabel('Intensity/A.U.');
+%     %     title('Envelope of electronic waveforms');
+%     % 
+%     % 
+%     % 
+%     %     % Save data
+%     %     if DataSaveSaveData == 'Yes'
+%     %         save([get(handles.edit23, 'String'),'\',PresentFileName,'_AWG_pattern_Loop_',num2str(kLoopnum)],'WAVEFORMDATAARRAYNorm');
+%     %     end
+%     % 
+%     % 
+%     %     % % Process pulses that are One!!!
+%     %     % VIntAmpPeakArrayOnOne = VIntAmpPeakArray.*WavefommIdealPulseOnOne;           % Choose only area with pulse on
+%     %     % % VIntAmpPeakArrayOneOneMean(kLoopnum) = sum(VIntAmpPeakArrayOnOne)/NumPulseOnOne;   % Average value
+%     %     % VIntAmpPeakArrayOnOneNorm = VIntAmpPeakArrayOnOne/max(VIntAmpPeakArrayOnOne);     % Normalize, [0, 1]
+%     %     % VIntAmpPeakArrayOnOneNormMean = sum(VIntAmpPeakArrayOnOneNorm)/NumPulseOnOne;       % Mean value of pulse peak
+%     %     % VIntAmpPeakArrayOnOneFluc = abs(VIntAmpPeakArrayOnOneNorm-VIntAmpPeakArrayOnOneNormMean.*WavefommIdealPulseOnOne); % Deviation from ideal peak
+%     %     % VIntAmpPeakArrayOnOneFlucRatio = VIntAmpPeakArrayOnOneFluc/VIntAmpPeakArrayOnOneNormMean;   % Fluctuation ratio
+%     %     % VIntAmpPeakArrayOnOneAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio)/NumPulseOnOne;            % average fluctuation
+%     %     % VIntAmpPeakArrayOnOneRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnOneFlucRatio.^2)/NumPulseOnOne;         % RMS fluctuation
+%     %     % VIntAmpPeakArrayOnOneMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnOneFlucRatio);
+%     %     % 
+%     %     % % Process pulses that are not off
+%     %     % VIntAmpPeakArrayOn = VIntAmpPeakArray.*WavefommIdealPulseOn;           % Choose only area with pulse on
+%     %     % VIntAmpPeakArrayMeanOn(kLoopnum) = sum(VIntAmpPeakArrayOn)/NumPulseOn;   % Average value
+%     %     % VIntAmpPeakArrayOnNorm = VIntAmpPeakArrayOn/max(VIntAmpPeakArrayOn);     % Normalize, [0, 1]
+%     %     % VIntAmpPeakArrayOnNormMean = sum(VIntAmpPeakArrayOnNorm)/NumPulseOn;       % Mean value of pulse peak
+%     %     % VIntAmpPeakArrayOnFluc = abs(VIntAmpPeakArrayOnNorm-VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak); % Deviation from ideal peak
+%     %     % 
+%     %     % VIntAmpPeakArrayOnFlucRatio = VIntAmpPeakArrayOnFluc/VIntAmpPeakArrayOnNormMean;   % Fluctuation ratio
+%     %     % VIntAmpPeakArrayOnAveFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio)/NumPulseOn;            % average fluctuation
+%     %     % VIntAmpPeakArrayOnRMSFluc(kLoopnum) = sum(VIntAmpPeakArrayOnFlucRatio.^2)/NumPulseOn;         % RMS fluctuation
+%     %     % VIntAmpPeakArrayOnMaxFluc(kLoopnum) = max(VIntAmpPeakArrayOnFlucRatio);
+%     % 
+%     % 
+%     %     % % use measured waveform to generate a new waveform for AWG input: WAVEFORMDATAARRAY.
+%     %     WaveformComp = VIntAmpPeakArrayOnOneNorm - VIntAmpPeakArrayOnOneNormMean.*WaveformIdealPeak;
+%     %     WaveformComp = WaveformComp.*WavefommIdealPulseOnOne;
+%     % 
+%     % 
+%     %     % use measured waveform to generate a new waveform for AWG input: WAVEFORMDATAARRAY.
+%     %     % WaveformComp = VIntAmpPeakArrayOnNorm - VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak;
+%     %     % WaveformComp = WaveformComp.*WavefommIdealPulseOn;
+%     % 
+%     %     % figure
+%     %     % plot(VTimeAWG,VIntAmpPeakArrayOnNorm,'b');hold on
+%     %     % plot(VTimeAWG,VIntAmpPeakArrayOnNormMean.*WaveformIdealPeak,'k');hold on
+%     %     % plot(VTimeAWG,WaveformComp,'r');hold on
+%     %     % 
+%     %     % figure (11)
+%     %     WaveformCompFactor = 4;
+%     %     if VIntAmpPeakArrayOnRMSFluc(kLoopnum)<=0.5/100
+%     %         WaveformCompFactor = 8;
+%     %     end
+%     %     if VIntAmpPeakArrayOnRMSFluc(kLoopnum)<=0.05/100
+%     %         WaveformCompFactor = 16;
+%     %     end
+%     %     if VIntAmpPeakArrayOnRMSFluc(kLoopnum)<=0.01/100
+%     %         WaveformCompFactor = 32;
+%     %     end
+%     %     WaveformCompFactor = 6;
+%     % 
+%     %     WAVEFORMDATAARRAYNorm = WAVEFORMDATAARRAYNorm - WaveformComp/WaveformCompFactor;
+%     % 
+%     %     if min(WAVEFORMDATAARRAYNorm)<0
+%     %         WAVEFORMDATAARRAYNorm = (WAVEFORMDATAARRAYNorm-min(WAVEFORMDATAARRAYNorm)) / max((WAVEFORMDATAARRAYNorm-min(WAVEFORMDATAARRAYNorm)));
+%     %     else
+%     %         WAVEFORMDATAARRAYNorm = WAVEFORMDATAARRAYNorm / max(WAVEFORMDATAARRAYNorm);
+%     % 
+%     %     end
+%     %     % WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm*2-1;                  % Generate the signal for AWG
+%     %     % WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm;                  % Generate the signal for AWG
+%     %     % WAVEFORMDATAARRAYNorm(WAVEFORMDATAARRAYNorm<0)=0;
+%     %     % WAVEFORMDATAARRAYNorm = abs((WAVEFORMDATAARRAY-PulseOff)/max(WAVEFORMDATAARRAY-PulseOff)); % Normalized
+%     %     % 
+%     %     subplot(2, 3, 5);
+%     %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOnNorm);hold on
+%     % 
+%     %     if kLoopnum == NLoop
+%     %     % plot(VTimeAWG/1e-6,VIntModPeakArray,'-.k');hold on
+%     %     plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYImageArea*VIntAmpPeakArrayOneOneMean(kLoopnum),'-.r'); hold on
+%     %     plot(VTimeAWG/1e-6,WaveformIdealPeak*VIntAmpPeakArrayOneOneMean(kLoopnum),'--k','linewidth',2); hold on
+%     %     end
+%     % 
+%     %     plot(VTimeAWG/1e-6,VIntAmpPeakArray,'b');hold on
+%     %     plot(VTimeAWG/1e-6,- WaveformComp*100,'g');hold on
+%     %     % xlim([100,106]);
+%     %     % plot(VTimeAWG/1e-6,VIntAmpPeakArrayOn,'--k');hold on
+%     %     % plot(VTimeAWG/1e-6,WAVEFORMDATAARRAYNorm*40,'-.r');hold on
+%     %     xlabel('Time/us');
+%     %     % ylabel('Intensity/A.U.');
+%     %     title('Envelope of output waveforms');
+%     %     % xlim([0,300]);
+%     % 
+%     % 
+%     %     xlim([100,106]);
+%     %     % Share final DataArray
+%     %     handles.LastWAVEFORMDATAARRAY     = WAVEFORMDATAARRAY;
+%     % 
+%     %     FinalPatternInSampleFirst = PatternInSampleFirst;
+%     %     FinalPatternInSampleLast  = PatternInSampleLast;
+%     %     % First part, line 2 to 511
+%     %     for k = 1:LineOfThePatternFirst
+%     %         StartL = 1+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
+%     %         EndL   = SamplesOfOneLineFirst+(k-1)*(SamplesOfOneLineFirst+Scan_Comp_Sample);
+%     %         FinalPatternInSampleFirst(k,:)=WAVEFORMDATAARRAY(StartL:EndL);
+%     %     end
+%     %     % Second part, line 512 to 1
+%     %     StartL = 1+SamplesOfOnePatternFirst;
+%     %     EndL   = SamplesOfOneLineLast+SamplesOfOnePatternFirst;
+%     %     FinalPatternInSampleLast(:)=WAVEFORMDATAARRAY(StartL:EndL);
+%     %     handles.FinalPatternInSampleFirst = FinalPatternInSampleFirst;
+%     %     handles.FinalPatternInSampleLast  = FinalPatternInSampleLast;
+%     % 
+%     %     WAVEFORMDATAARRAY = WAVEFORMDATAARRAYNorm*(PulseOn-PulseOff)+PulseOff;
+%     % 
+%     % 
+%     %     % whos WAVEFORMDATAARRAY;
+%     %     % MAXW = max(WAVEFORMDATAARRAYNorm)
+%     %     % MINW = min(WAVEFORMDATAARRAYNorm)
+%     % 
+%     % 
+%     % 
+%     % 
+%     %     PulseOn = 1;                % Waveform value when pulse is on
+%     %     PulseOff = 0;               % Waveform value when pulse is off
+%     %     VLoops2 = linspace(0,NLoop,NLoop*1000);
+%     %     subplot(2, 6, 5);
+%     %     plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneMaxFluc(1:kLoopnum)*100,'-sk');hold on;
+%     %     if kLoopnum==1
+%     %         plot(VLoops2,VLoops2.*0+VIntModPeakArrayOnOneMaxFluc*100,'-.k');hold on;
+%     %         text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneMaxFluc(1)*100),'%']);
+%     %         text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*7*100,['Initial Mod = ',num2str(VIntModPeakArrayOnOneMaxFluc*100),'%']);
+%     %         xlabel('Loops');
+%     %         ylabel('Fluctuation of signal/%');
+%     %     %     title('Max Fluctuation');
+%     %     end
+%     %     if kLoopnum==NLoop
+%     %         legend('Amp Max','Mod Max');
+%     %     end
+%     %     % text(0.5,max(VIntAmpPeakArrayOnOneMaxFluc(1))/10*6*100,['Present Amp = ',num2str(VIntAmpPeakArrayOnOneMaxFluc(kLoopnum)*100),'%']);
+%     %     title(['Max, ',num2str(VIntAmpPeakArrayOnOneMaxFluc(kLoopnum)*100),'%']);
+%     % 
+%     %     subplot(2, 6, 6);
+%     %     plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOnOneRMSFluc(1:kLoopnum)*100,'-sb');hold on;
+%     % 
+%     %     if kLoopnum==1
+%     %         plot(VLoops2,0.*VLoops2+VIntModPeakArrayOnOneRMSFluc*100,'-.b');hold on;
+%     %         text(0.5,max(VIntAmpPeakArrayOnOneRMSFluc(1))/10*8*100,['Initial Amp = ',num2str(VIntAmpPeakArrayOnOneRMSFluc(1)*100),'%']);
+%     %         text(0.5,max(VIntAmpPeakArrayOnOneRMSFluc(1))/10*7*100,['Initial Mod = ',num2str(VIntModPeakArrayOnOneRMSFluc*100),'%']);
+%     %         xlabel('Loops');
+%     %         ylabel('Fluctuation of signal/%');
+%     % 
+%     %     end
+%     %     if kLoopnum==NLoop
+%     %         legend('Amp RMS','Mod RMS');
+%     %     end
+%     %     % text(0.5,max(VIntAmpPeakArrayOnOneRMSFluc(1))/10*6*100,['Present Amp = ',num2str(VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)*100),'%']);
+%     %     title(['RMS, ',num2str(VIntAmpPeakArrayOnOneRMSFluc(kLoopnum)*100),'%']);
+%     % 
+%     % 
+%     %     subplot(2, 3, 6);
+%     %     plot(VLoops(1:kLoopnum),VIntAmpPeakArrayOneOneMean(1:kLoopnum),'-ok');hold on;
+%     %     xlabel('Loops');
+%     %     ylabel('Mean value of output pulse peaks/a.u.');
+%     %     title('Loops vs output pulse peaks mean value');
+%     % 
+%     % 
+%     %     fprintf([num2str(kLoopnum),'th rounds, ']);
+%     %     pause(str2double(get(handles.edit31, 'String')));
+% 
+%     end
+% 
+% 
+% end
+% 
+% % Save data
+% if DataSaveSaveData == 'Yes'
+% save([get(handles.edit23, 'String'),'\',PresentFileName,'_OSC_Time'],'VTimeOSC');
+% save([get(handles.edit23, 'String'),'\',PresentFileName,'_AWG_Time'],'VTimeAWG');
+% set(handles.text38, 'String',get(handles.text37, 'String'));
+% set(handles.text37, 'String',get(handles.text36, 'String'));
+% set(handles.text36, 'String',PresentFileName);
+% end
+% 
+% fprintf(['Feedback loop takes',num2str(toc(FeedbackLoopTime)),' seconds.\n']);
+% % figure (13)
 
 NewhObject=hObject;
 Newhandles=handles;
@@ -3681,17 +3397,11 @@ function ImageProcessed = ImageProcessImageProcess(handles)
 fullFileName = [get(handles.edit25,'string'),'\',get(handles.edit24,'string')];
 
 FinalImage = imread(fullFileName);
+% FinalImage = fliplr(FinalImage);       % 20210620
 % if rgb, then convert to gray
 if size(FinalImage,3) == 3
     FinalImage = rgb2gray(FinalImage);
 end
-
-% verticalLineShift = 1;              % number of vertical line shift, due to the delay physically added in polygon loop closure
-% vls = verticalLineShift;
-% Image3 = zeros(size(FinalImage));
-% Image3(1:end-vls,:) = FinalImage(1+vls:end,:);
-% FinalImage = Image3;
-
 
 [pixelCount, grayLevels] = imhist(FinalImage);
 MeanPixelValue = sum(pixelCount)/max(grayLevels);
@@ -3707,6 +3417,9 @@ ImageProcessed = originalImage;
 
 % 5.x main function
 function Newhandles = ImageProcessMainFunction(handles)
+
+% 20250321 flag for z power modulation. 1 for enabling, 0 for disabling
+zPowerMod = 0; 
 
 captionFontSize = 14;
 % RelationshipPixelAndSampes = importdata('Pixel_vs_samples.txt');
@@ -3818,7 +3531,7 @@ DTimeAWG = 1/AWGSamplingRate;      % s
 
 ScanBackTime_left     = str2double(get(handles.edit47, 'String'))*DTimeAWG; %Scan back time for left, per line
 ScanTime              = str2double(get(handles.edit48, 'String'))*DTimeAWG;
-ScanBackTime_Right    = ScanBackTime_left;
+ScanBackTime_Right    = str2double(get(handles.edit49, 'String'))*DTimeAWG;
 ScanBackTime_Right2   = str2double(get(handles.edit50, 'String'))*DTimeAWG;
 Scan_Comp_Sample = str2double(get(handles.edit51, 'String'));
 FlyBackSamples        = str2double(get(handles.edit52, 'String')); %Flyback time, in samples of AWG.
@@ -3829,7 +3542,7 @@ ScanSamples           = round(ScanTime/DTimeAWG);
 ScanBackSamples_Right = round(ScanBackTime_Right/DTimeAWG);    
 ScanBackSamples_Right2= round(ScanBackTime_Right2/DTimeAWG);  
 ScanAllLineSamples    = ScanBackSamples_left+ScanSamples;
-ScanAllLineSamples    = floor(ScanAllLineSamples/4)*4+4;
+ScanAllLineSamples    = floor(ScanAllLineSamples/4)*4;
 
 
 
@@ -3848,8 +3561,11 @@ UnUsePulseValue = str2double(get(handles.edit39,'string'));
 FinalLineRatioAllToOne = zeros(NumOfPatterns,1);
 FinalLineRatioAllToOnePulseX = zeros(NumOfPatterns,1);
 
-% One Image: Line 1 to 511
-for OI=1:NumOfPatterns-1 % 1:511
+% flip the image in odd lines to adapt to bidi fast-axis scanning
+binaryImage(1:2:end,:) = binaryImage(1:2:end,end:-1:1);
+
+% One Image: Line 2 to 511
+for OI=1:NumOfPatterns-1 % 1:255
     ImageLineFirst  = binaryImage(OI,1:PixelPerLine);
     
 
@@ -3866,65 +3582,59 @@ for OI=1:NumOfPatterns-1 % 1:511
         ImageArea(OI,(RPSSamFrom:RPSSamTo)+ScanBias) = 1;
     end
     
-    
-    % First scan - scanback before it, and gain transient compensation
-    SamplesLineAndScanBack = ScanSamples+ScanBackSamples_left;                      % Samples for one line and scan back
-    SamplesIdealOneNum = floor(SamplesLineAndScanBack/IdealRatioOfAllToOnePlusX);   % Ideal number of pulses should be on, in one scan.
-    ThisScanFrom = RelationshipPixelAndSampes(1,2)+ScanBias;                        % from pixel 512
-    ThisScanTo = RelationshipPixelAndSampes(end,3)+ScanBias;                        % to pixel 1
-    SamplesActualOneNum = sum(PatternLine(OI,ThisScanFrom:ThisScanTo));             % Actual number of 1 in the first scan
+%     % First scan - scanback before it, and gain transient compensation
+%     SamplesLineAndScanBack = ScanSamples+ScanBackSamples_left;                      % Samples for one line and scan back
+%     SamplesIdealOneNum = floor(SamplesLineAndScanBack/IdealRatioOfAllToOnePlusX);   % Ideal number of pulses should be on, in one scan.
+%     ThisScanFrom = RelationshipPixelAndSampes(1,2)+ScanBias;                        % from pixel 512
+%     ThisScanTo = RelationshipPixelAndSampes(end,3)+ScanBias;                        % to pixel 1
+%     SamplesActualOneNum = sum(PatternLine(OI,ThisScanFrom:ThisScanTo));             % Actual number of 1 in the first scan
 %     if SamplesActualOneNum==0 % New add line, on 20190715 for test,
-        if SamplesIdealOneNum>SamplesActualOneNum                                       % if ideal > actual, then need add pulse in right edge, where individual pulses are equaly spaced
-            SamplesExtraCompOneNum = SamplesIdealOneNum - SamplesActualOneNum;          % Compensate number of pulses = Ideal - Actual, value will be X, UnUsePulseValue
-            RatioOfActualAndComp = SamplesActualOneNum/SamplesExtraCompOneNum;          % Ratio of Actual and compensation number of pulses, i.e., 1:X
-            NumOfOneWithKcount  = 0;                                                    % count number of pulses on
-            NumOfOneSampleEmployed = 0;                                                 % count number of compensation pulses that are employed
-            
-%             % comment out below, 20220601 for test
+%         if SamplesIdealOneNum>SamplesActualOneNum                                       % if ideal > actual, then need add pulse in right edge
+%             SamplesExtraCompOneNum = SamplesIdealOneNum - SamplesActualOneNum;          % Compensate number of pulses = Ideal - Actual, value will be X, UnUsePulseValue
+%             RatioOfActualAndComp = SamplesActualOneNum/SamplesExtraCompOneNum;          % Ratio of Actual and compensation number of pulses, i.e., 1:X
+%             NumOfOneWithKcount  = 0;                                                    % count number of pulses on
+%             NumOfOneSampleEmployed = 0;                                                 % count number of compensation pulses that are employed
 %             for kcount=ThisScanTo:-1:ThisScanFrom                                       % count number of pulse from pixel 1 to pixel 512
 %                 NumOfOneWithKcount = NumOfOneWithKcount+PatternLine(OI,kcount);         % count number of pulses
 %                 if NumOfOneWithKcount>(RatioOfActualAndComp)                            % if find enough 1 in scan, then add 1 in right scanback
 %                     RightkCount = floor(abs(kcount-ThisScanTo)/ScanSamples*ScanBackSamples_Right);% kcount move ScanSamples, then Right kcount move ScanBackSamples_Right
-%                     PatternLine(OI,end-RightkCount) = UnUsePulseValue;             % define the compensation pulse value, as UnUsePulseValue
+%                     PatternLine(OI,ScanBias-RightkCount) = UnUsePulseValue;             % define the compensation pulse value, as UnUsePulseValue
 %                     NumOfOneWithKcount = 0;                                             % Once defined the compensation pulse, set count as 0
 %                     NumOfOneSampleEmployed = NumOfOneSampleEmployed+1;                  % count the number of compensation pulses employed
 %                 end
 %             end
-%             % comment out above, 20220601 for test
-            
-            NumOfOneSampleUnemployed = floor(SamplesExtraCompOneNum - NumOfOneSampleEmployed);  % calculate the number of compensation pulses umemployed
-            NumOfOneSampleUnemployed = min(NumOfOneSampleUnemployed, TrailZeros);               % if number of one sample unemployed is greater than trailzeros, then just turn on all trailzeros
-            VOneSamplePosition = linspace(1,NumOfOneSampleUnemployed,NumOfOneSampleUnemployed); % Define the position of the unemployed pulses
-            VOneSamplePosition = round(VOneSamplePosition - NumOfOneSampleUnemployed/2);
-            VOneSamplePosition = 0 + VOneSamplePosition + floor(ThisScanTo + TrailZeros/2);        % Put all unemployed pulses in the middle of scanback
-            PatternLine(OI,VOneSamplePosition) = UnUsePulseValue;                               % define the unemployed pulse value, as UnUsePulseValue
-        else
-%             PatternLine(2:(NumOfPatterns-1), floor(ScanBackSamples_left/2))=0.99;    % commented out by SZ 20220110
-    %         % Number of 1 should be turned off
-    %         SamplesOneShouldBeZero = SamplesOneInRightHalfScan - SamplesIdealOneNum;
-    %         RatioOfShould = floor(SamplesOneInRightHalfScan/SamplesOneShouldBeZero);
-    %         SOSBNum = 0;
-    %         for SOSB=ThisScanFrom:ThisScanTo
-    %             if PatternLine(OI,SOSB)==1
-    %                 SOSBNum = SOSBNum+1;
-    %                 if SOSBNum==RatioOfShould
-    % %                         PatternLine(OI,SOSB)=0;
-    %                     SOSBNum = 0;
-    %                 end
-    %             end
-    %         end
-        end
+%             NumOfOneSampleUnemployed = floor(SamplesExtraCompOneNum - NumOfOneSampleEmployed);  % calculate the number of compensation pulses umemployed
+%             VOneSamplePosition = linspace(1,NumOfOneSampleUnemployed,NumOfOneSampleUnemployed); % Define the position of the unemployed pulses
+%             VOneSamplePosition = 0 + VOneSamplePosition + floor(ScanBackSamples_left/2);                                        % Define the position of the unemployed pulses
+%             PatternLine(OI,VOneSamplePosition) = UnUsePulseValue;                               % define the unemployed pulse value, as UnUsePulseValue
+%         else
+%             PatternLine(2:(NumOfPatterns-1), floor(ScanBackSamples_left/2))=0.99;
+%     %         % Number of 1 should be turned off
+%     %         SamplesOneShouldBeZero = SamplesOneInRightHalfScan - SamplesIdealOneNum;
+%     %         RatioOfShould = floor(SamplesOneInRightHalfScan/SamplesOneShouldBeZero);
+%     %         SOSBNum = 0;
+%     %         for SOSB=ThisScanFrom:ThisScanTo
+%     %             if PatternLine(OI,SOSB)==1
+%     %                 SOSBNum = SOSBNum+1;
+%     %                 if SOSBNum==RatioOfShould
+%     % %                         PatternLine(OI,SOSB)=0;
+%     %                     SOSBNum = 0;
+%     %                 end
+%     %             end
+%     %         end
+%         end
 %     end   %20190715
     
 %     PatternLine(1,1:50) = 0.9; 
 %     PatternLine(1,60) = 0.99; 
     % Information collect
-    SamplesActualOneNum = sum(PatternLine(OI,ThisScanFrom:ThisScanTo) > 0);             % Actual number of 1 in the first scan, re-calculate it
-    FinalLineRatioAllToOne(OI)=SamplesLineAndScanBack/SamplesActualOneNum;        % Ratio of (1+x+0):1
-    FinalLineRatioAllToOnePulseX(OI)=SamplesLineAndScanBack/SamplesIdealOneNum;   % Ratio of (1+x+0):(1+x)
+%     SamplesActualOneNum = sum(PatternLine(OI,ThisScanFrom:ThisScanTo));             % Actual number of 1 in the first scan, re-calculate it
+%     FinalLineRatioAllToOne(OI,1)=SamplesLineAndScanBack/SamplesActualOneNum;        % Ratio of (1+x+0):1
+%     FinalLineRatioAllToOnePulseX(OI,1)=SamplesLineAndScanBack/SamplesIdealOneNum;   % Ratio of (1+x+0):(1+x)
     
         
     
+
     
 end
 
@@ -3958,72 +3668,109 @@ for OI=NumOfPatterns
     ThisScanFrom = RelationshipPixelAndSampes(1,2)+ScanBias;                        % from pixel 512
     ThisScanTo = RelationshipPixelAndSampes(PixelPerLine,3)+ScanBias;                        % to pixel 1
     SamplesActualOneNum = sum(PatternLastLine(ThisScanFrom:ThisScanTo));            % Actual number of 1 in the first scan
-    if SamplesIdealOneNum>SamplesActualOneNum                                       % if ideal > actual, then need add pulse in right edge
-        SamplesExtraCompOneNum = SamplesIdealOneNum - SamplesActualOneNum;          % Compensate number of pulses = Ideal - Actual, value will be X, UnUsePulseValue
-        RatioOfActualAndComp = SamplesActualOneNum/SamplesExtraCompOneNum;          % Ratio of Actual and compensation number of pulses, i.e., 1:X
-        NumOfOneWithKcount  = 0;                                                    % count number of pulses on
-        NumOfOneSampleEmployed = 0;                                                 % count number of compensation pulses that are employed
-        for kcount=ThisScanTo:-1:ThisScanFrom                                       % count number of pulse from pixel 1 to pixel 512
-            NumOfOneWithKcount = NumOfOneWithKcount+PatternLastLine(kcount);         % count number of pulses
-            if NumOfOneWithKcount>(RatioOfActualAndComp)                            % if find enough 1 in scan, then add 1 in right scanback
-                RightkCount = floor(abs(kcount-ThisScanTo)/ScanSamples*ScanBackSamples_Right);% kcount move x, then Right kcount move 1
-                PatternLastLine(end-RightkCount) = UnUsePulseValue;            % define the compensation pulse value, as UnUsePulseValue
-                NumOfOneWithKcount = 0;                                             % Once defined the compensation pulse, set count as 0
-                NumOfOneSampleEmployed = NumOfOneSampleEmployed+1;                  % count the number of compensation pulses employed
-            end
-        end
-        NumOfOneSampleUnemployed = floor(SamplesExtraCompOneNum - NumOfOneSampleEmployed);  % calculate the number of compensation pulses umemployed
-        NumOfOneSampleUnemployed = min(NumOfOneSampleUnemployed, TrailZeros);
-        VOneSamplePosition = linspace(1,NumOfOneSampleUnemployed,NumOfOneSampleUnemployed); % Define the position of the unemployed pulses
-        VOneSamplePosition = round(VOneSamplePosition - NumOfOneSampleUnemployed/2);
-        VOneSamplePosition = 0 + VOneSamplePosition+ floor(ThisScanTo + TrailZeros/2);                                        % Define the position of the unemployed pulses
-        PatternLastLine(VOneSamplePosition) = UnUsePulseValue;                               % define the unemployed pulse value, as UnUsePulseValue
-        
-       
-    else
-%         % Number of 1 should be turned off
-%         SamplesOneShouldBeZero = SamplesOneInRightHalfScan - SamplesIdealOneNum;
-%         RatioOfShould = floor(SamplesOneInRightHalfScan/SamplesOneShouldBeZero);
-%         SOSBNum = 0;
-%         for SOSB=ThisScanFrom:ThisScanTo
-%             if PatternLine(OI,SOSB)==1
-%                 SOSBNum = SOSBNum+1;
-%                 if SOSBNum==RatioOfShould
-% %                         PatternLine(OI,SOSB)=0;
-%                     SOSBNum = 0;
-%                 end
+%     if SamplesIdealOneNum>SamplesActualOneNum                                       % if ideal > actual, then need add pulse in right edge
+%         SamplesExtraCompOneNum = SamplesIdealOneNum - SamplesActualOneNum;          % Compensate number of pulses = Ideal - Actual, value will be X, UnUsePulseValue
+%         RatioOfActualAndComp = SamplesActualOneNum/SamplesExtraCompOneNum;          % Ratio of Actual and compensation number of pulses, i.e., 1:X
+%         NumOfOneWithKcount  = 0;                                                    % count number of pulses on
+%         NumOfOneSampleEmployed = 0;                                                 % count number of compensation pulses that are employed
+%         for kcount=ThisScanTo:-1:ThisScanFrom                                       % count number of pulse from pixel 1 to pixel 512
+%             NumOfOneWithKcount = NumOfOneWithKcount+PatternLastLine(kcount);         % count number of pulses
+%             if NumOfOneWithKcount>(RatioOfActualAndComp)                            % if find enough 1 in scan, then add 1 in right scanback
+%                 RightkCount = floor(abs(kcount-ThisScanTo)/ScanSamples*ScanBackSamples_Right);% kcount move x, then Right kcount move 1
+%                 PatternLastLine(end-RightkCount) = UnUsePulseValue;            % define the compensation pulse value, as UnUsePulseValue
+%                 NumOfOneWithKcount = 0;                                             % Once defined the compensation pulse, set count as 0
+%                 NumOfOneSampleEmployed = NumOfOneSampleEmployed+1;                  % count the number of compensation pulses employed
 %             end
 %         end
-    end
-%      PatternLastLine(floor(ScanBackSamples_left/2))=0.99;
-    % Information collect
-    SamplesActualOneNum = sum(PatternLastLine(ThisScanFrom:ThisScanTo) > 0); % Actual number of 1 in half center scan
-    FinalLineRatioAllToOne(end)=SamplesLineAndScanBack/SamplesActualOneNum;
-    FinalLineRatioAllToOnePulseX(end)=SamplesLineAndScanBack/SamplesActualOneNum;
-
-    % Left scan back time, 4 MHz
-    FlyBackSamFrom = RPSSamTo+ScanBias+8;
-    FlyBackSamTo = RPSSamTo+ScanBias+FlyBackSamples-1;
-%     disp('pattern last line length 1: ' + string(length(PatternLastLine)));
-    PatternLastLine(round(FlyBackSamFrom:round(IdealRatioOfAllToOnePlusX/str2double(get(handles.edit41,'string'))):FlyBackSamTo)) = UnUsePulseValue;
-
-    
-    
-
-    % Second scan time
-%     for SST=1:512
-%         RPSPixel   = RelationshipPixelAndSampes(SST,1);% 512
-%         RPSSamFrom = RelationshipPixelAndSampes(SST,2);%1
-%         RPSSamTo   = RelationshipPixelAndSampes(SST,3);%6
-%         ScanBias = ScanBackSamples_Right+ScanSamples+FlyBackSamples;
-%         PatternLastLine((RPSSamFrom:RPSSamTo)+ScanBias) = ImageLineSecond(513-RPSPixel);
-%         ImageAreaLastLine((RPSSamFrom:RPSSamTo)+ScanBias) = 1;
+%         NumOfOneSampleUnemployed = floor(SamplesExtraCompOneNum - NumOfOneSampleEmployed);  % calculate the number of compensation pulses umemployed
+%         VOneSamplePosition = linspace(1,NumOfOneSampleUnemployed,NumOfOneSampleUnemployed); % Define the position of the unemployed pulses
+%         VOneSamplePosition = 0 + VOneSamplePosition+ floor(ThisScanTo + TrailZeros/2);                                        % Define the position of the unemployed pulses
+%         PatternLastLine(VOneSamplePosition) = UnUsePulseValue;                               % define the unemployed pulse value, as UnUsePulseValue
+%        
+%     else
+% %         % Number of 1 should be turned off
+% %         SamplesOneShouldBeZero = SamplesOneInRightHalfScan - SamplesIdealOneNum;
+% %         RatioOfShould = floor(SamplesOneInRightHalfScan/SamplesOneShouldBeZero);
+% %         SOSBNum = 0;
+% %         for SOSB=ThisScanFrom:ThisScanTo
+% %             if PatternLine(OI,SOSB)==1
+% %                 SOSBNum = SOSBNum+1;
+% %                 if SOSBNum==RatioOfShould
+% % %                         PatternLine(OI,SOSB)=0;
+% %                     SOSBNum = 0;
+% %                 end
+% %             end
+% %         end
 %     end
-
-    % One line finished
+% %      PatternLastLine(floor(ScanBackSamples_left/2))=0.99;
+%     % Information collect
+%     SamplesActualOneNum = sum(PatternLastLine(ThisScanFrom:ThisScanTo) > 0); % Actual number of 1 in half center scan
+%     FinalLineRatioAllToOne(end)=SamplesLineAndScanBack/SamplesActualOneNum;
+%     FinalLineRatioAllToOnePulseX(end)=SamplesLineAndScanBack/SamplesActualOneNum;
+% 
+%     % Left scan back time, 4 MHz
+%     FlyBackSamFrom = RPSSamTo+ScanBias+8;
+%     FlyBackSamTo = RPSSamTo+ScanBias+FlyBackSamples-1;
+% %     disp('pattern last line length 1: ' + string(length(PatternLastLine)));
+%     PatternLastLine(round(FlyBackSamFrom:round(IdealRatioOfAllToOnePlusX/str2double(get(handles.edit41,'string'))):FlyBackSamTo)) = UnUsePulseValue;
+% 
+%     
+%     
+% 
+%     % Second scan time
+% %     for SST=1:512
+% %         RPSPixel   = RelationshipPixelAndSampes(SST,1);% 512
+% %         RPSSamFrom = RelationshipPixelAndSampes(SST,2);%1
+% %         RPSSamTo   = RelationshipPixelAndSampes(SST,3);%6
+% %         ScanBias = ScanBackSamples_Right+ScanSamples+FlyBackSamples;
+% %         PatternLastLine((RPSSamFrom:RPSSamTo)+ScanBias) = ImageLineSecond(513-RPSPixel);
+% %         ImageAreaLastLine((RPSSamFrom:RPSSamTo)+ScanBias) = 1;
+% %     end
+% 
+%     % One line finished
 
 end
 PatternLine(1,2:3)=0;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% power modulation with depth for volume imaging %%%%%%%%%%%
+%%%%%%%%%%%%%%%% 20250413  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if zPowerMod == 1
+    % adjust power as a function of z
+    % Take care of bidi z scanning in PowerVsDepth_Clark146.m
+    linesPerFrame = 200;
+    numSlices = 10;
+    AWGfactorList = [0.5746    0.5935    0.6145    0.6364    0.6615    0.6894    0.7216    0.7605    0.8108    0.9300];    
+
+%     % for calibration below
+%     linesPerFrame = 20;
+%     calibStart = 0.01;
+%     calibEnd = 1;
+%     numSlices = 100; 
+%     AWGfactorList = linspace(calibStart, calibEnd, numSlices);
+
+    if size(PatternLine,1)+1 ~= linesPerFrame * numSlices
+        errordlg('Manual input for num of lines and slices is wrong','Code Module 3.0 Error');
+    end
+    if length(AWGfactorList) ~= numSlices
+        errordlg('Manual input for AWG factor list is wrong','Code Module 3.0 Error');
+    end
+    for k = 1:numSlices-1
+        lineNumOffset = (k-1)*linesPerFrame;
+        lineNumRange = (1:linesPerFrame)+lineNumOffset;
+        PatternLine(lineNumRange, :) = AWGfactorList(k) * PatternLine(lineNumRange, :);
+    end
+    for k = numSlices
+        lineNumOffset = (k-1)*linesPerFrame;
+        lineNumRange = (1:(linesPerFrame-1))+lineNumOffset;
+        PatternLine(lineNumRange, :) = AWGfactorList(k) * PatternLine(lineNumRange, :);
+    end
+    PatternLastLine(:) = AWGfactorList(end) * PatternLastLine(:);
+end
+
+%%%%%%%%%%% End: power modulation with depth for volume imaging %%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 figure (88)
 subplot(4, 3, 4);
 for k=1
@@ -4052,22 +3799,20 @@ handles.ConvertedPatternInSamples = PatternLine;
 figure (88)
 subplot(4, 3, 10);
 
-    VTimeTem = VTimeSampleLastLine+ScanAllLineSamples*(NumOfPatterns-1);
+    VTimeTem = VTimeSampleLastLine+ScanAllLineSamples*255;
     length(PatternLastLine)
-    length(VTimeTem)
     plot(VTimeTem,PatternLastLine,'b');hold on
     plot(VTimeTem,ImageAreaLastLine,'-.r');hold on
 
 xlim([min(VTimeTem),max(VTimeTem)]);
 ylim([-0.05,1.05]);
 xlabel('Time/AWG Samples');
-title('Pattern in time, last line', 'FontSize', captionFontSize); 
+title('Pattern in time, Line 256', 'FontSize', captionFontSize); 
 handles.ConvertedPatternInSamplesFirst = PatternLine;
-% csvwrite('firstPattern.csv', PatternLine);
 whos PatternLine
 handles.ConvertedImageArea = ImageArea;
 handles.ConvertedPatternInSamplesLast = PatternLastLine;
-% csvwrite('lastPattern.csv', PatternLastLine);
+
 
 
     
@@ -4077,7 +3822,7 @@ handles.ConvertedPatternInSamplesLast = PatternLastLine;
     LineOfThePatternFirst = length(PatternInSampleFirst(:,1));
     SamplesOfOneLineFirst = length(PatternInSampleFirst(1,:));
     SamplesOfOnePatternFirst = (SamplesOfOneLineFirst+Scan_Comp_Sample)*LineOfThePatternFirst; % Add Scan_Comp_Sample samples to two lines: for example, line 2 and 3.
-    NumOfOneInFirst = sum(sum(PatternInSampleFirst>0));
+    NumOfOneInFirst = sum(sum(PatternInSampleFirst));
     RatioOfZeroToOne = round(SamplesOfOnePatternFirst/NumOfOneInFirst*10)/10;
     % Second part, line 512 to line 1
     PatternInSampleLast = PatternLastLine;
@@ -4096,11 +3841,11 @@ handles.ConvertedPatternInSamplesLast = PatternLastLine;
 % Image information
 PixelSumPerline = sum(binaryImage');
 PixelSumPerlineMax = max(PixelSumPerline);
-set(handles.text100,'string',[num2str(PixelSumPerlineMax),',1:',num2str(round(PixelPerLine/PixelSumPerlineMax*10)/10)]);
+set(handles.text100,'string',[num2str(PixelSumPerlineMax),',1:',num2str(round(512/PixelSumPerlineMax*10)/10)]);
 % set(handles.text102,'string',[num2str(PixelSumPerlineMin)]);
 
 % Pattern information
-SamplesSumPerline = sum((PatternLine(2:end,:)>0),2);
+SamplesSumPerline = sum(PatternLine');
 SamplesSumPerlineMax = max(SamplesSumPerline);
 
 % 
@@ -4111,21 +3856,20 @@ set(handles.text102,'string',['1:',num2str(round(ScanAllLineSamples/SamplesSumPe
 
 % Information of image
 
-BigNumber = 10000;
-FinalLineRatioAllToOne(end)=BigNumber;
-FinalLineRatioAllToOnePulseX(end)=BigNumber;
+BigNumber = 1000;
+FinalLineRatioAllToOne(floor(PixelPerLine/2),2)=BigNumber;
+FinalLineRatioAllToOnePulseX(floor(PixelPerLine/2),2)=BigNumber;
 
-minFinalLineRatioAllToOne = min(FinalLineRatioAllToOne);
-AveFinalLineRatioAllToOne = (sum(1./FinalLineRatioAllToOne)-1/BigNumber)/(NumOfPatterns);
+minFinalLineRatioAllToOne = min(min(FinalLineRatioAllToOne));
+AveFinalLineRatioAllToOne = (sum(sum(1./FinalLineRatioAllToOne))-1/BigNumber)/(PixelPerLine-1);
 
-minFinalLineRatioAllToOnePulseX = min(FinalLineRatioAllToOnePulseX);
-AveFinalLineRatioAllToOnePulseX = (sum(1./FinalLineRatioAllToOnePulseX)-1/BigNumber)/(NumOfPatterns);
-% whos FinalLineRatioAllToOnePulseX
+minFinalLineRatioAllToOnePulseX = min(min(FinalLineRatioAllToOnePulseX));
+AveFinalLineRatioAllToOnePulseX = (sum(sum(1./FinalLineRatioAllToOnePulseX))-1/BigNumber)/(PixelPerLine-1);
+whos FinalLineRatioAllToOnePulseX
 
 set(handles.text48 ,'string',['max = 1:',num2str(round(minFinalLineRatioAllToOne*10)/10),', average = 1:',num2str(round(1/AveFinalLineRatioAllToOne*10)/10)]);
 set(handles.text129,'string',['max = 1:',num2str(round(minFinalLineRatioAllToOnePulseX*10)/10),', average = 1:',num2str(round(1/AveFinalLineRatioAllToOnePulseX*10)/10)]);
-
-
+        
         
 
 % VIntensityAWG         = linspace(PulseOff,PulseOff,NSampleAWG); % Pre-dine AWG pattern
